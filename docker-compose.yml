@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  # Flask Application
+  app:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./app:/app/app
+      - ./data/ml_models:/app/data/ml_models
+      - ./data/sqlite:/app/data/sqlite
+      - ./data/contracts:/app/data/contracts
+    environment:
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - DATABASE_URL=sqlite:///data/sqlite/app.db
+      - GANACHE_URL=http://ganache:8545
+      - CHAIN_ID=1337
+      - ML_MODEL_PATH=/app/data/ml_models/duration_predictor.h5
+    depends_on:
+      - ganache
+
+  # Ganache Blockchain
+  ganache:
+    image: trufflesuite/ganache:latest
+    ports:
+      - "8545:8545"
+    volumes:
+      - ./data/ganache:/ganache_data
+    command:
+      - --db=/ganache_data
+      - --mnemonic="your custom mnemonic here"
+      - --networkId=1337
+      - --chainId=1337
+      - --hostname=0.0.0.0
+      - --deterministic
+      - --accounts=10
+      - --defaultBalanceEther=1000
+
+  # Contract Deployment Service
+  contract-deployer:
+    build: .
+    command: python deploy_contract.py
+    volumes:
+      - ./app:/app/app
+      - ./data/contracts:/app/data/contracts
+    environment:
+      - GANACHE_URL=http://ganache:8545
+      - CHAIN_ID=1337
+    depends_on:
+      - ganache
+
+volumes:
+  ml_models:
+    driver: local
+  sqlite_data:
+    driver: local
+  ganache_data:
+    driver: local
+  contract_data:
+    driver: local
+
+networks:
+  default:
+    driver: bridge
