@@ -63,21 +63,156 @@ blockchain-storage-app/
    docker-compose exec app flask db upgrade
    ```
 
-## API Endpoints
+## API Documentation
+
+The API documentation is available at http://localhost:5000/docs/
+
+### API Endpoints and CURL Examples
 
 ### User Management
 - `POST /api/usuarios` - Register new user
 - `GET /api/usuarios` - List users
 
+Example - Register a new user:
+```bash
+curl -X POST http://localhost:5000/api/usuarios \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "John Doe",
+    "email": "john@example.com",
+    "password": "securepass123"
+  }'
+```
+
 ### File Storage
 - `POST /api/upload` - Upload file to Storacha
 - `GET /api/cids` - List stored CIDs
+
+Example - Upload a file:
+```bash
+curl -X POST http://localhost:5000/api/upload \
+  -F "file=@/path/to/your/file.pdf" \
+  -F "user_id=1"
+```
+
+Example - List CIDs:
+```bash
+curl -X GET http://localhost:5000/api/cids
+```
 
 ### Contract Management
 - `POST /api/contrato/gerar` - Generate new contract
 - `GET /api/contrato/status/{cid}` - Get contract status
 - `GET /api/custo/{cid}` - Estimate gas costs
 - `POST /api/contrato/assinar/{cid}` - Sign contract
+
+Example - Generate a contract:
+```bash
+curl -X POST http://localhost:5000/api/contrato/gerar \
+  -H "Content-Type: application/json" \
+  -d '{
+    "creator_id": 1,
+    "title": "House Painting Contract",
+    "location": {
+      "city": "São Paulo",
+      "state": "SP",
+      "coordinates": {
+        "lat": -23.550520,
+        "lon": -46.633308
+      }
+    },
+    "planned_start_date": "2024-01-15",
+    "planned_duration_days": 7,
+    "contractor_details": {
+      "name": "John Doe",
+      "email": "john@example.com"
+    },
+    "provider_details": {
+      "name": "Paint Pro Services",
+      "email": "provider@paintpro.com"
+    },
+    "payment_details": {
+      "amount": 5000.00,
+      "method": "Bank Transfer"
+    }
+  }'
+```
+
+Example - Sign a contract:
+```bash
+curl -X POST http://localhost:5000/api/contrato/assinar/QmYourCIDHere \
+  -H "Content-Type: application/json" \
+  -d '{
+    "signer_email": "provider@paintpro.com",
+    "signature_data": {
+      "signature": "digital_signature_here",
+      "timestamp": "2024-01-10T14:30:00Z"
+    }
+  }'
+```
+
+Example - Check contract status:
+```bash
+curl -X GET http://localhost:5000/api/contrato/status/QmYourCIDHere
+```
+
+Example - Estimate gas cost:
+```bash
+curl -X GET http://localhost:5000/api/custo/QmYourCIDHere
+```
+
+### Response Format
+
+All API endpoints return JSON responses with the following structure:
+
+Success Response:
+```json
+{
+  "message": "Operation successful",
+  "data": {
+    // Operation-specific data
+  }
+}
+```
+
+Error Response:
+```json
+{
+  "error": "Error message",
+  "details": "Additional error details (if available)"
+}
+```
+
+### HTTP Status Codes
+
+- 200: Success
+- 201: Created
+- 400: Bad Request
+- 401: Unauthorized
+- 403: Forbidden
+- 404: Not Found
+- 500: Internal Server Error
+
+### Testing with Postman
+
+1. Import the provided Postman collection:
+   - Open Postman
+   - Click "Import"
+   - Select the `painting_contract_api.postman_collection.json` file
+
+2. Set up environment variables:
+   - Create a new environment
+   - Add variables:
+     - `base_url`: http://localhost:5000
+     - `user_id`: (after creating a user)
+     - `contract_cid`: (after generating a contract)
+
+3. Run the requests in sequence:
+   1. Create User
+   2. Upload File
+   3. Generate Contract
+   4. Sign Contract
+   5. Check Status
 
 ## Weather-Based Duration Prediction
 
