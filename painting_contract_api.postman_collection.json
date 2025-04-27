@@ -1,0 +1,208 @@
+{
+  "info": {
+    "_postman_id": "1234567-89ab-cdef-0123-456789abcdef",
+    "name": "Painting Contract API",
+    "description": "Collection for testing the Painting Contract API endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "User Management",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/usuarios",
+              "host": ["{{base_url}}"],
+              "path": ["api", "usuarios"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"securepass123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/usuarios",
+              "host": ["{{base_url}}"],
+              "path": ["api", "usuarios"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "File Storage",
+      "item": [
+        {
+          "name": "Upload File",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "user_id",
+                  "value": "{{user_id}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/upload",
+              "host": ["{{base_url}}"],
+              "path": ["api", "upload"]
+            }
+          }
+        },
+        {
+          "name": "List CIDs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/cids",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cids"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Contract Management",
+      "item": [
+        {
+          "name": "Generate Contract",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/contrato/gerar",
+              "host": ["{{base_url}}"],
+              "path": ["api", "contrato", "gerar"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"creator_id\": {{user_id}},\n  \"title\": \"House Painting Contract\",\n  \"location\": {\n    \"city\": \"São Paulo\",\n    \"state\": \"SP\",\n    \"coordinates\": {\n      \"lat\": -23.550520,\n      \"lon\": -46.633308\n    }\n  },\n  \"planned_start_date\": \"2024-01-15\",\n  \"planned_duration_days\": 7,\n  \"contractor_details\": {\n    \"name\": \"John Doe\",\n    \"email\": \"john@example.com\"\n  },\n  \"provider_details\": {\n    \"name\": \"Paint Pro Services\",\n    \"email\": \"provider@paintpro.com\"\n  },\n  \"payment_details\": {\n    \"amount\": 5000.00,\n    \"method\": \"Bank Transfer\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Sign Contract",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/contrato/assinar/{{contract_cid}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "contrato", "assinar", "{{contract_cid}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"signer_email\": \"provider@paintpro.com\",\n  \"signature_data\": {\n    \"signature\": \"digital_signature_here\",\n    \"timestamp\": \"2024-01-10T14:30:00Z\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Contract Status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/contrato/status/{{contract_cid}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "contrato", "status", "{{contract_cid}}"]
+            }
+          }
+        },
+        {
+          "name": "Estimate Gas Cost",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/custo/{{contract_cid}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "custo", "{{contract_cid}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "IPFS Status",
+      "item": [
+        {
+          "name": "Check CID Status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/status/{{contract_cid}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "status", "{{contract_cid}}"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "contract_cid",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
