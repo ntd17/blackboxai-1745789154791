@@ -16,7 +16,6 @@ A Flask-based application for managing painting contracts with weather-based dur
 
 - Docker and Docker Compose
 - Python 3.9+
-- Node.js 14+ (for Ganache)
 - Storacha API key
 - OpenWeatherMap API key
 - SMTP server credentials
