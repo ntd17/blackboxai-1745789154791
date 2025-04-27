@@ -21,7 +21,7 @@ services:
     depends_on:
       - ganache
 
-  # Ganache Blockchain
+  # Ganache Blockchain (Using official Docker image)
   ganache:
     image: trufflesuite/ganache:latest
     ports:
@@ -29,27 +29,20 @@ services:
     volumes:
       - ./data/ganache:/ganache_data
     command:
-      - --db=/ganache_data
-      - --mnemonic="your custom mnemonic here"
-      - --networkId=1337
-      - --chainId=1337
-      - --hostname=0.0.0.0
-      - --deterministic
-      - --accounts=10
-      - --defaultBalanceEther=1000
-
-  # Contract Deployment Service
-  contract-deployer:
-    build: .
-    command: python deploy_contract.py
-    volumes:
-      - ./app:/app/app
-      - ./data/contracts:/app/data/contracts
-    environment:
-      - GANACHE_URL=http://ganache:8545
-      - CHAIN_ID=1337
-    depends_on:
-      - ganache
+      - --server.host=0.0.0.0
+      - --chain.chainId=1337
+      - --chain.networkId=1337
+      - --database.dbPath=/ganache_data
+      - --wallet.deterministic=true
+      - --wallet.totalAccounts=10
+      - --wallet.defaultBalance=1000
+      - --miner.blockTime=0
+      - --chain.hardfork=london
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8545"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
 volumes:
   ml_models:
