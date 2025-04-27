@@ -1,7 +1,8 @@
-from flask import Flask
+from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
+from flasgger import Swagger
 from config import Config
 
 db = SQLAlchemy()
@@ -11,10 +12,30 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
+    # Swagger configuration
+    app.config['SWAGGER'] = {
+        'title': 'Painting Contract API',
+        'uiversion': 3,
+        'version': '1.0.0',
+        'description': '''
+        API for managing painting contracts with blockchain integration and weather-based predictions.
+        
+        Features:
+        - User management
+        - File storage on IPFS via Storacha
+        - Smart contract integration
+        - Weather-based contract duration predictions
+        - Digital signatures and verification
+        ''',
+        'termsOfService': '',
+        'specs_route': '/docs/'
+    }
+
     # Initialize extensions
     db.init_app(app)
     migrate.init_app(app, db)
     CORS(app)
+    Swagger(app)
 
     # Register blueprints
     from app.routes import user_bp, storage_bp, contract_bp, signature_bp
