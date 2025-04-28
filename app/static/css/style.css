@@ -1,0 +1,233 @@
+/* Base styles */
+:root {
+    --primary-color: #1976d2;
+    --secondary-color: #424242;
+    --success-color: #4caf50;
+    --error-color: #f44336;
+    --warning-color: #ff9800;
+    --info-color: #2196f3;
+    --background-color: #f5f5f5;
+    --text-color: #212121;
+    --text-light: #757575;
+    --border-color: #e0e0e0;
+}
+
+/* Typography */
+body {
+    font-family: 'Roboto', sans-serif;
+    line-height: 1.6;
+    color: var(--text-color);
+    background-color: var(--background-color);
+}
+
+/* Layout */
+.container {
+    padding: 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Navigation */
+nav {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.nav-wrapper {
+    padding: 0 1rem;
+}
+
+.brand-logo img {
+    height: 50px;
+    padding: 5px 0;
+}
+
+/* Language Selector */
+.language-selector {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 1000;
+}
+
+.language-selector .btn-floating {
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* Cards */
+.card {
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: box-shadow 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* Forms */
+.input-field label {
+    color: var(--text-light);
+}
+
+.input-field input[type=text]:focus + label,
+.input-field input[type=email]:focus + label,
+.input-field input[type=password]:focus + label {
+    color: var(--primary-color);
+}
+
+.input-field input[type=text]:focus,
+.input-field input[type=email]:focus,
+.input-field input[type=password]:focus {
+    border-bottom: 1px solid var(--primary-color);
+    box-shadow: 0 1px 0 0 var(--primary-color);
+}
+
+/* Buttons */
+.btn, .btn-large {
+    border-radius: 4px;
+    text-transform: none;
+    letter-spacing: 0.5px;
+}
+
+.btn-floating {
+    border-radius: 50%;
+}
+
+/* Tables */
+table.highlight > tbody > tr:hover {
+    background-color: rgba(0,0,0,0.03);
+}
+
+/* Admin Dashboard */
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.stat-card {
+    padding: 1.5rem;
+    border-radius: 8px;
+    background: white;
+}
+
+/* Contract Status Badges */
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.status-draft { background-color: var(--text-light); color: white; }
+.status-pending { background-color: var(--warning-color); color: white; }
+.status-signed { background-color: var(--success-color); color: white; }
+.status-cancelled { background-color: var(--error-color); color: white; }
+
+/* Responsive Design */
+@media only screen and (max-width: 600px) {
+    .container {
+        padding: 0.5rem;
+    }
+    
+    .dashboard-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .hide-on-small {
+        display: none;
+    }
+}
+
+/* Loading States */
+.loading {
+    position: relative;
+    min-height: 200px;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--border-color);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Toast Notifications */
+.toast {
+    border-radius: 4px;
+}
+
+.toast.success {
+    background-color: var(--success-color);
+}
+
+.toast.error {
+    background-color: var(--error-color);
+}
+
+.toast.warning {
+    background-color: var(--warning-color);
+}
+
+.toast.info {
+    background-color: var(--info-color);
+}
+
+/* Footer */
+footer {
+    margin-top: 2rem;
+    padding: 2rem 0;
+    background-color: var(--secondary-color);
+    color: white;
+}
+
+footer .footer-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 2rem;
+}
+
+footer .footer-links a {
+    color: white;
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+}
+
+footer .footer-links a:hover {
+    opacity: 1;
+}
+
+/* Print Styles */
+@media print {
+    nav, footer, .no-print {
+        display: none;
+    }
+    
+    body {
+        background: white;
+    }
+    
+    .container {
+        width: 100%;
+        max-width: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .card {
+        box-shadow: none;
+        border: 1px solid var(--border-color);
+    }
+}
