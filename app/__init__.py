@@ -57,10 +57,13 @@ def create_app(config_class=Config):
     
     # Register blueprints
     from app.routes import user_bp, storage_bp, contract_bp, signature_bp
+    from app.routes.ml_routes import ml_bp
+
     app.register_blueprint(user_bp, url_prefix='/api')
     app.register_blueprint(storage_bp, url_prefix='/api')
     app.register_blueprint(contract_bp, url_prefix='/api')
     app.register_blueprint(signature_bp, url_prefix='/api')
+    app.register_blueprint(ml_bp, url_prefix='/api/ml')
     
     # Health check endpoint
     @app.route('/health')
