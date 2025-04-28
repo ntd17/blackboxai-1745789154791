@@ -1,0 +1,330 @@
+{% extends "base_public.html" %}
+
+{% block title %}Contract Details{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Contract Header -->
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="px-6 py-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">{{ contract.title }}</h1>
+                    <p class="mt-1 text-sm text-gray-500">Contract #{{ contract.id }}</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    {% if contract.status == 'draft' %}
+                    <button onclick="requestSignature('{{ contract.id }}')"
+                            class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <i class="fas fa-paper-plane mr-2"></i>
+                        Request Signature
+                    </button>
+                    {% endif %}
+                    
+                    {% if contract.status == 'pending_signature' %}
+                    <button onclick="signContract('{{ contract.id }}')"
+                            class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        <i class="fas fa-signature mr-2"></i>
+                        Sign Contract
+                    </button>
+                    {% endif %}
+                    
+                    <button onclick="downloadContract('{{ contract.id }}')"
+                            class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                        <i class="fas fa-download mr-2"></i>
+                        Download
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Status Badge -->
+            <div class="mt-4">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                           {% if contract.status == 'draft' %}bg-gray-100 text-gray-800
+                           {% elif contract.status == 'pending_signature' %}bg-yellow-100 text-yellow-800
+                           {% elif contract.status == 'signed' %}bg-green-100 text-green-800
+                           {% else %}bg-red-100 text-red-800{% endif %}">
+                    <i class="fas {% if contract.status == 'draft' %}fa-pencil-alt
+                              {% elif contract.status == 'pending_signature' %}fa-clock
+                              {% elif contract.status == 'signed' %}fa-check
+                              {% else %}fa-times{% endif %} mr-2"></i>
+                    {{ contract.status|title }}
+                </span>
+            </div>
+        </div>
+        
+        <!-- Contract Details -->
+        <div class="border-t border-gray-200 px-6 py-6">
+            <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Created Date</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ contract.created_at.strftime('%Y-%m-%d %H:%M') }}</dd>
+                </div>
+                
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Last Updated</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ contract.updated_at.strftime('%Y-%m-%d %H:%M') }}</dd>
+                </div>
+                
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Contractor</dt>
+                    <dd class="mt-1 text-sm text-gray-900">
+                        {{ contract.contractor_name }}
+                        <div class="text-gray-500">{{ contract.contractor_email }}</div>
+                    </dd>
+                </div>
+                
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Provider</dt>
+                    <dd class="mt-1 text-sm text-gray-900">
+                        {{ contract.provider_name }}
+                        <div class="text-gray-500">{{ contract.provider_email }}</div>
+                    </dd>
+                </div>
+                
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Location</dt>
+                    <dd class="mt-1 text-sm text-gray-900">
+                        {{ contract.location.city }}, {{ contract.location.country }}
+                    </dd>
+                </div>
+                
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Duration</dt>
+                    <dd class="mt-1 text-sm text-gray-900">
+                        {{ contract.planned_duration_days }} days
+                        {% if contract.weather_prediction and contract.weather_prediction.adjusted_duration != contract.planned_duration_days %}
+                        <span class="text-yellow-600">
+                            (Recommended: {{ contract.weather_prediction.adjusted_duration }} days)
+                        </span>
+                        {% endif %}
+                    </dd>
+                </div>
+            </dl>
+        </div>
+        
+        <!-- Weather Prediction -->
+        {% if contract.weather_prediction %}
+        <div class="border-t border-gray-200 px-6 py-6">
+            <h3 class="text-lg font-medium text-gray-900">Weather Prediction</h3>
+            <div class="mt-4 bg-blue-50 rounded-lg p-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <dt class="text-sm font-medium text-blue-800">Rain Probability</dt>
+                        <dd class="mt-1 text-2xl font-semibold text-blue-900">
+                            {{ "%.1f"|format(contract.weather_prediction.rain_probability * 100) }}%
+                        </dd>
+                    </div>
+                    
+                    <div>
+                        <dt class="text-sm font-medium text-blue-800">Confidence Score</dt>
+                        <dd class="mt-1 text-2xl font-semibold text-blue-900">
+                            {{ "%.1f"|format(contract.weather_prediction.confidence_score * 100) }}%
+                        </dd>
+                    </div>
+                    
+                    <div>
+                        <dt class="text-sm font-medium text-blue-800">Predicted Delay</dt>
+                        <dd class="mt-1 text-2xl font-semibold text-blue-900">
+                            {{ contract.weather_prediction.predicted_delay }} days
+                        </dd>
+                    </div>
+                </div>
+                
+                <!-- Daily Forecast -->
+                <div class="mt-6">
+                    <h4 class="text-sm font-medium text-blue-800 mb-3">Daily Forecast</h4>
+                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+                        {% for day in contract.weather_prediction.daily_forecasts %}
+                        <div class="bg-white rounded-lg p-3 shadow-sm">
+                            <div class="text-xs text-gray-500">{{ day.date }}</div>
+                            <div class="mt-2 flex items-center">
+                                <i class="fas {% if day.rain_prob > 0.5 %}fa-cloud-rain text-blue-500
+                                          {% else %}fa-sun text-yellow-500{% endif %} text-2xl"></i>
+                                <div class="ml-2">
+                                    <div class="text-sm font-medium">{{ "%.1f"|format(day.temp.day) }}°C</div>
+                                    <div class="text-xs text-gray-500">{{ "%.0f"|format(day.rain_prob * 100) }}% rain</div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Blockchain Information -->
+        <div class="border-t border-gray-200 px-6 py-6">
+            <h3 class="text-lg font-medium text-gray-900">Blockchain Information</h3>
+            <div class="mt-4 space-y-4">
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Contract CID</dt>
+                    <dd class="mt-1 text-sm text-gray-900 font-mono">{{ contract.initial_cid }}</dd>
+                </div>
+                
+                {% if contract.signed_cid %}
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Signed Contract CID</dt>
+                    <dd class="mt-1 text-sm text-gray-900 font-mono">{{ contract.signed_cid }}</dd>
+                </div>
+                {% endif %}
+                
+                {% if contract.blockchain_tx %}
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Transaction Hash</dt>
+                    <dd class="mt-1 text-sm text-gray-900 font-mono">{{ contract.blockchain_tx }}</dd>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Signature Modal -->
+<div id="signature-modal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
+    <div class="bg-white rounded-lg p-6 max-w-lg w-full">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-medium text-gray-900">Sign Contract</h3>
+            <button onclick="closeSignatureModal()" class="text-gray-400 hover:text-gray-500">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="space-y-4">
+            <!-- Signature Canvas -->
+            <div class="border-2 border-gray-300 rounded-lg">
+                <canvas id="signature-canvas" class="w-full h-64"></canvas>
+            </div>
+            <div class="flex justify-between">
+                <button onclick="clearSignature()"
+                        class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                    Clear
+                </button>
+                <button onclick="submitSignature()"
+                        class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                    Submit Signature
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let signatureCanvas, signatureCtx;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize signature canvas
+    signatureCanvas = document.getElementById('signature-canvas');
+    signatureCtx = signatureCanvas.getContext('2d');
+    
+    // Set canvas size
+    function resizeCanvas() {
+        const container = signatureCanvas.parentElement;
+        signatureCanvas.width = container.offsetWidth;
+        signatureCanvas.height = container.offsetHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    
+    // Initialize signature drawing
+    let isDrawing = false;
+    let lastX = 0;
+    let lastY = 0;
+    
+    signatureCanvas.addEventListener('mousedown', startDrawing);
+    signatureCanvas.addEventListener('mousemove', draw);
+    signatureCanvas.addEventListener('mouseup', stopDrawing);
+    signatureCanvas.addEventListener('mouseout', stopDrawing);
+    
+    function startDrawing(e) {
+        isDrawing = true;
+        [lastX, lastY] = [e.offsetX, e.offsetY];
+    }
+    
+    function draw(e) {
+        if (!isDrawing) return;
+        
+        signatureCtx.beginPath();
+        signatureCtx.moveTo(lastX, lastY);
+        signatureCtx.lineTo(e.offsetX, e.offsetY);
+        signatureCtx.strokeStyle = '#000';
+        signatureCtx.lineWidth = 2;
+        signatureCtx.lineCap = 'round';
+        signatureCtx.stroke();
+        
+        [lastX, lastY] = [e.offsetX, e.offsetY];
+    }
+    
+    function stopDrawing() {
+        isDrawing = false;
+    }
+});
+
+function signContract(contractId) {
+    document.getElementById('signature-modal').classList.remove('hidden');
+}
+
+function closeSignatureModal() {
+    document.getElementById('signature-modal').classList.add('hidden');
+    clearSignature();
+}
+
+function clearSignature() {
+    signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+}
+
+async function submitSignature() {
+    const signatureData = signatureCanvas.toDataURL();
+    const contractId = '{{ contract.id }}';
+    
+    try {
+        const response = await fetch(`/api/contrato/assinar/${contractId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                signature_data: signatureData
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showToast('Contract signed successfully', 'success');
+            closeSignatureModal();
+            location.reload();
+        } else {
+            showToast(data.error || 'Failed to sign contract', 'error');
+        }
+    } catch (error) {
+        showToast('Error signing contract', 'error');
+    }
+}
+
+async function requestSignature(contractId) {
+    try {
+        const response = await fetch(`/api/contrato/solicitar/${contractId}`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showToast('Signature request sent successfully', 'success');
+            location.reload();
+        } else {
+            showToast(data.error || 'Failed to request signature', 'error');
+        }
+    } catch (error) {
+        showToast('Error requesting signature', 'error');
+    }
+}
+
+function downloadContract(contractId) {
+    window.location.href = `/api/contrato/download/${contractId}`;
+}
+</script>
+{% endblock %}
