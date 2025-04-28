@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/templates:/etc/nginx/templates
+      - ./nginx/entrypoint.sh:/entrypoint.sh
+      - ./nginx/ssl:/etc/nginx/ssl
+      - ./logs/nginx:/var/log/nginx
+    environment:
+      - SERVER_NAME=example.com
+    entrypoint: ["/entrypoint.sh"]
+    networks:
+      - backend
+    depends_on:
+      - flask-app
+    restart: unless-stopped
