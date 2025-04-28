@@ -1,0 +1,91 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}
+<span class="lang" data-key="dashboard_title"></span>
+{% endblock %}
+
+{% block header %}
+<span class="lang" data-key="dashboard_header"></span>
+{% endblock %}
+
+{% block content %}
+{# 
+  Dashboard data (total_users, active_contracts, stored_files, system_status, recent_activities) 
+  will be passed dynamically from the Flask backend.
+#}
+<div class="row">
+  <div class="col s12 m6 l3">
+    <div class="card blue lighten-1">
+      <div class="card-content white-text">
+        <span class="card-title"><i class="material-icons left">people</i><span class="lang" data-key="total_users"></span></span>
+        <h4>{{ total_users }}</h4>
+      </div>
+    </div>
+  </div>
+  <div class="col s12 m6 l3">
+    <div class="card green lighten-1">
+      <div class="card-content white-text">
+        <span class="card-title"><i class="material-icons left">description</i><span class="lang" data-key="active_contracts"></span></span>
+        <h4>{{ active_contracts }}</h4>
+      </div>
+    </div>
+  </div>
+  <div class="col s12 m6 l3">
+    <div class="card purple lighten-1">
+      <div class="card-content white-text">
+        <span class="card-title"><i class="material-icons left">cloud_upload</i><span class="lang" data-key="stored_files"></span></span>
+        <h4>{{ stored_files }}</h4>
+      </div>
+    </div>
+  </div>
+  <div class="col s12 m6 l3">
+    <div class="card amber lighten-1">
+      <div class="card-content white-text">
+        <span class="card-title"><i class="material-icons left">settings</i><span class="lang" data-key="system_status"></span></span>
+        <h4><span class="lang" data-key="status_{{ system_status|lower }}"></span></h4>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h5><span class="lang" data-key="recent_activity"></span></h5>
+  <ul class="collection">
+    {% if recent_activities %}
+      {% for activity in recent_activities %}
+      <li class="collection-item avatar">
+        <i class="material-icons circle {{ activity.color }}">{{ activity.icon }}</i>
+        <span class="title">{{ activity.title }}</span>
+        <p>{{ activity.description }}<br>{{ activity.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
+      </li>
+      {% endfor %}
+    {% else %}
+      <li class="collection-item"><span class="lang" data-key="no_recent_activity"></span></li>
+    {% endif %}
+  </ul>
+</div>
+
+<div class="section">
+  <h5><span class="lang" data-key="system_resources"></span></h5>
+  <div class="row">
+    <div class="col s12 m4">
+      <p><span class="lang" data-key="cpu_usage"></span>: {{ system_resources.cpu_usage }}%</p>
+      <div class="progress">
+        <div class="determinate" style="width: {{ system_resources.cpu_usage }}%"></div>
+      </div>
+    </div>
+    <div class="col s12 m4">
+      <p><span class="lang" data-key="memory_usage"></span>: {{ system_resources.memory_usage }}%</p>
+      <div class="progress">
+        <div class="determinate" style="width: {{ system_resources.memory_usage }}%"></div>
+      </div>
+    </div>
+    <div class="col s12 m4">
+      <p><span class="lang" data-key="disk_usage"></span>: {{ system_resources.disk_usage }}%</p>
+      <div class="progress">
+        <div class="determinate" style="width: {{ system_resources.disk_usage }}%"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
