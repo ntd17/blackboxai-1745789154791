@@ -7,9 +7,13 @@ python-dotenv==1.0.0
 flasgger==0.9.7
 flask-jwt-extended==4.5.2
 flask-login==0.6.2
+flask-limiter==3.5.0
+flask-caching==2.1.0
 
-# Database
+# Database and Caching
 SQLAlchemy==2.0.21
+redis==5.0.1
+marshmallow==3.20.1
 
 # Blockchain
 web3==6.9.0
