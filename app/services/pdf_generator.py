@@ -1,5 +1,8 @@
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
+from pathlib import Path
+import pdfkit
+import os
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
@@ -8,6 +11,36 @@ from io import BytesIO
 from datetime import datetime
 from typing import Dict, Optional
 import PyPDF2
+
+def generate_pdf_from_html(html_content: str, output_name: str = "document.pdf", options: dict = None) -> str:
+    """Generate PDF from HTML content with professional formatting"""
+    default_options = {
+        'page-size': 'Letter',
+        'margin-top': '0.75in',
+        'margin-right': '0.75in',
+        'margin-bottom': '0.75in',
+        'margin-left': '0.75in',
+        'encoding': 'UTF-8',
+        'quiet': ''
+    }
+    
+    try:
+        # Merge default and custom options
+        final_options = {**default_options, **(options or {})}
+
+        # Ensure output directory exists
+        output_dir = Path(__file__).parent.parent / 'static/generated_pdfs'
+        output_dir.mkdir(exist_ok=True)
+        
+        # Create full output path
+        output_path = output_dir / output_name
+        
+        # Generate PDF with configuration
+        pdfkit.from_string(html_content, str(output_path), options=final_options)
+        
+        return str(output_path)
+    except Exception as e:
+        raise RuntimeError(f"PDF generation failed: {str(e)}")
 
 def generate_contract_pdf(contract: 'Contract', weather_prediction: Optional['WeatherPrediction'] = None) -> bytes:
     """
