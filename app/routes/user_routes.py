@@ -6,6 +6,7 @@ from app.utils.validators import validate_email
 from sqlalchemy.exc import IntegrityError
 
 @user_bp.route('/usuarios', methods=['POST'])
+@user_bp.route('/api/usuarios', methods=['POST'])
 def register_user():
     """
     Register a new user
@@ -83,6 +84,7 @@ def register_user():
         }), 500
 
 @user_bp.route('/usuarios', methods=['GET'])
+@user_bp.route('/api/usuarios', methods=['GET'])
 def get_users():
     """
     Get list of users
@@ -99,6 +101,7 @@ def get_users():
     }), 200
 
 @user_bp.route('/usuarios/<int:user_id>', methods=['GET'])
+@user_bp.route('/api/usuarios/<int:user_id>', methods=['GET'])
 def get_user(user_id):
     """
     Get user by ID
