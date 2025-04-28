@@ -1,0 +1,104 @@
+version: '3.8'
+
+services:
+  # Flask Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - FLASK_ENV=production
+    ports:
+      - "80:80"
+    environment:
+      - FLASK_ENV=production
+      - FLASK_APP=wsgi.py
+      - FLASK_DEBUG=0
+      - DATABASE_URL=sqlite:///data/sqlite/app.db
+      - GANACHE_URL=http://ganache:8545
+      - CHAIN_ID=1337
+      - ML_MODEL_PATH=/app/data/ml_models/duration_predictor.h5
+      - GUNICORN_WORKERS=4
+      - GUNICORN_THREADS=2
+      - GUNICORN_TIMEOUT=120
+      - GUNICORN_KEEP_ALIVE=5
+    volumes:
+      - ./data/ml_models:/app/data/ml_models
+      - ./data/sqlite:/app/data/sqlite
+      - ./data/contracts:/app/data/contracts
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - app_network
+
+  # Ganache Blockchain
+  ganache:
+    image: trufflesuite/ganache:latest
+    ports:
+      - "8545:8545"
+    volumes:
+      - ./data/ganache:/ganache_data
+    command:
+      - --server.host=0.0.0.0
+      - --chain.chainId=1337
+      - --chain.networkId=1337
+      - --database.dbPath=/ganache_data
+      - --wallet.deterministic=true
+      - --wallet.totalAccounts=10
+      - --wallet.defaultBalance=1000
+      - --miner.blockTime=0
+      - --chain.hardfork=london
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8545"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - app_network
+
+  # Redis for caching and session management
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - app_network
+
+volumes:
+  redis_data:
+    driver: local
+
+networks:
+  app_network:
+    driver: bridge
+
+# Example Nginx configuration for reverse proxy (commented out)
+#   nginx:
+#     image: nginx:alpine
+#     ports:
+#       - "80:80"
+#       - "443:443"
+#     volumes:
+#       - ./nginx/conf.d:/etc/nginx/conf.d
+#       - ./nginx/ssl:/etc/nginx/ssl
+#       - ./nginx/logs:/var/log/nginx
+#     depends_on:
+#       - app
+#     restart: unless-stopped
+#     networks:
+#       - app_network
