@@ -1,0 +1,309 @@
+{% extends "base_public.html" %}
+
+{% block title %}Create Contract{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="px-6 py-8">
+            <h1 class="text-2xl font-bold text-gray-900">Create New Contract</h1>
+            <p class="mt-2 text-sm text-gray-500">Fill in the contract details below</p>
+        </div>
+
+        <form id="contract-form" class="border-t border-gray-200 px-6 py-6 space-y-6">
+            <!-- Basic Information -->
+            <div>
+                <h3 class="text-lg font-medium text-gray-900">Basic Information</h3>
+                <div class="mt-4 grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Title</label>
+                        <input type="text" name="title" required
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Start Date</label>
+                        <input type="date" name="planned_start_date" required
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Duration (Days)</label>
+                        <input type="number" name="planned_duration_days" required min="1"
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Location -->
+            <div>
+                <h3 class="text-lg font-medium text-gray-900">Location</h3>
+                <div class="mt-4 grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">City</label>
+                        <input type="text" name="location[city]" required
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Country</label>
+                        <input type="text" name="location[country]" required
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contractor Details -->
+            <div>
+                <h3 class="text-lg font-medium text-gray-900">Contractor Details</h3>
+                <div class="mt-4 grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Name</label>
+                        <input type="text" name="contractor_details[name]" required
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Email</label>
+                        <input type="email" name="contractor_details[email]" required
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Provider Details -->
+            <div>
+                <h3 class="text-lg font-medium text-gray-900">Provider Details</h3>
+                <div class="mt-4 grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Name</label>
+                        <input type="text" name="provider_details[name]" required
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Email</label>
+                        <input type="email" name="provider_details[email]" required
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Details -->
+            <div>
+                <h3 class="text-lg font-medium text-gray-900">Payment Details</h3>
+                <div class="mt-4 grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Amount</label>
+                        <div class="mt-1 relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="text-gray-500">$</span>
+                            </div>
+                            <input type="number" name="payment_details[amount]" required min="0" step="0.01"
+                                   class="pl-7 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Payment Method</label>
+                        <select name="payment_details[method]" required
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500">
+                            <option value="bank_transfer">Bank Transfer</option>
+                            <option value="credit_card">Credit Card</option>
+                            <option value="crypto">Cryptocurrency</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Weather Prediction -->
+            <div id="weather-prediction" class="hidden">
+                <div class="border-t border-gray-200 pt-6">
+                    <h3 class="text-lg font-medium text-gray-900">Weather Prediction</h3>
+                    <div class="mt-4 bg-blue-50 rounded-lg p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div>
+                                <dt class="text-sm font-medium text-blue-800">Rain Probability</dt>
+                                <dd id="rain-probability" class="mt-1 text-2xl font-semibold text-blue-900">-</dd>
+                            </div>
+                            
+                            <div>
+                                <dt class="text-sm font-medium text-blue-800">Recommended Duration</dt>
+                                <dd id="recommended-duration" class="mt-1 text-2xl font-semibold text-blue-900">-</dd>
+                            </div>
+                            
+                            <div>
+                                <dt class="text-sm font-medium text-blue-800">Confidence Score</dt>
+                                <dd id="confidence-score" class="mt-1 text-2xl font-semibold text-blue-900">-</dd>
+                            </div>
+                        </div>
+                        
+                        <div id="daily-forecast" class="mt-6">
+                            <h4 class="text-sm font-medium text-blue-800 mb-4">Daily Forecast</h4>
+                            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+                                <!-- Daily forecast cards will be inserted here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="border-t border-gray-200 pt-6">
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="window.history.back()"
+                            class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                        Create Contract
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('contract-form');
+    const weatherPrediction = document.getElementById('weather-prediction');
+    
+    // Debounce function
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    
+    // Get weather prediction
+    const getWeatherPrediction = debounce(async function() {
+        const location = {
+            city: form.querySelector('[name="location[city]"]').value,
+            country: form.querySelector('[name="location[country]"]').value
+        };
+        
+        const startDate = form.querySelector('[name="planned_start_date"]').value;
+        const duration = form.querySelector('[name="planned_duration_days"]').value;
+        
+        if (!location.city || !location.country || !startDate || !duration) {
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/ml/predict_rain', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    location,
+                    planned_start_date: startDate,
+                    planned_duration_days: parseInt(duration)
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                weatherPrediction.classList.remove('hidden');
+                
+                // Update prediction values
+                document.getElementById('rain-probability').textContent = 
+                    `${(data.data.rain_probability * 100).toFixed(1)}%`;
+                document.getElementById('recommended-duration').textContent = 
+                    `${data.data.recommended_duration} days`;
+                document.getElementById('confidence-score').textContent = 
+                    `${(data.data.confidence_score * 100).toFixed(1)}%`;
+                
+                // Update daily forecast
+                const forecastContainer = document.getElementById('daily-forecast');
+                const forecastGrid = forecastContainer.querySelector('.grid');
+                forecastGrid.innerHTML = '';
+                
+                data.data.daily_forecasts.forEach(day => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-white rounded-lg p-3 shadow-sm';
+                    card.innerHTML = `
+                        <div class="text-xs text-gray-500">${day.date}</div>
+                        <div class="mt-2 flex items-center">
+                            <i class="fas ${day.rain_prob > 0.5 ? 'fa-cloud-rain text-blue-500' : 'fa-sun text-yellow-500'} text-2xl"></i>
+                            <div class="ml-2">
+                                <div class="text-sm font-medium">${day.temp.day.toFixed(1)}°C</div>
+                                <div class="text-xs text-gray-500">${(day.rain_prob * 100).toFixed(0)}% rain</div>
+                            </div>
+                        </div>
+                    `;
+                    forecastGrid.appendChild(card);
+                });
+            } else {
+                showToast(data.error || 'Failed to get weather prediction', 'error');
+            }
+        } catch (error) {
+            showToast('Error getting weather prediction', 'error');
+        }
+    }, 1000);
+    
+    // Add event listeners for weather prediction
+    const weatherInputs = [
+        '[name="location[city]"]',
+        '[name="location[country]"]',
+        '[name="planned_start_date"]',
+        '[name="planned_duration_days"]'
+    ];
+    
+    weatherInputs.forEach(selector => {
+        form.querySelector(selector).addEventListener('input', getWeatherPrediction);
+    });
+    
+    // Form submission
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const data = {};
+        
+        for (let [key, value] of formData.entries()) {
+            // Handle nested objects (e.g., location[city])
+            const keys = key.match(/([^\[]+)(?:\[([^\]]+)\])?/);
+            if (keys[2]) {
+                data[keys[1]] = data[keys[1]] || {};
+                data[keys[1]][keys[2]] = value;
+            } else {
+                data[key] = value;
+            }
+        }
+        
+        try {
+            const response = await fetch('/api/contrato/gerar', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                showToast('Contract created successfully', 'success');
+                window.location.href = `/contracts/${result.data.contract.id}`;
+            } else {
+                showToast(result.error || 'Failed to create contract', 'error');
+            }
+        } catch (error) {
+            showToast('Error creating contract', 'error');
+        }
+    });
+});
+</script>
+{% endblock %}
