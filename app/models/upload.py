@@ -16,7 +16,7 @@ class Upload(TimestampMixin, db.Model):
     
     # Metadata
     ipfs_url = db.Column(db.String(512))
-    metadata = db.Column(db.JSON)
+    file_metadata = db.Column(db.JSON, info={'alias': 'metadata'})  # Renamed to avoid SQLAlchemy conflict
 
     def __init__(self, user_id, filename, cid, mime_type=None, file_size=None):
         self.user_id = user_id
