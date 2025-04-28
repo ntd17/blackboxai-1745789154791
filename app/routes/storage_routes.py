@@ -12,12 +12,16 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import os
 
-# Initialize rate limiter
+# Initialize rate limiter with default memory storage
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=["1000 per day", "100 per hour"],
-    storage_url=current_app.config['REDIS_URL']
+    default_limits=["1000 per day", "100 per hour"]
 )
+
+def init_limiter(app):
+    """Initialize rate limiter with Redis storage from app config"""
+    if 'REDIS_URL' in app.config:
+        limiter.storage_url = app.config['REDIS_URL']
 
 ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'txt', 'jpg', 'jpeg', 'png'}
 MAX_FILE_SIZE = 16 * 1024 * 1024  # 16MB
@@ -151,7 +155,7 @@ def upload_file():
 
 @storage_bp.route('/cids', methods=['GET'])
 @limiter.limit("300/hour")
-@cached(timeout=300)  # Cache for 5 minutes
+@cached(expires_in=300)  # Cache for 5 minutes
 def list_cids():
     """
     List all CIDs
@@ -215,7 +219,7 @@ def list_cids():
 
 @storage_bp.route('/cids/<string:cid>', methods=['GET'])
 @limiter.limit("300/hour")
-@cached(timeout=300)  # Cache for 5 minutes
+@cached(expires_in=300)  # Cache for 5 minutes
 def get_cid_info(cid):
     """
     Get information about a specific CID
@@ -267,7 +271,7 @@ def get_cid_info(cid):
 
 @storage_bp.route('/cids/<string:cid>/verify', methods=['GET'])
 @limiter.limit("100/hour")
-@cached(timeout=60)  # Cache for 1 minute
+@cached(expires_in=60)  # Cache for 1 minute
 def verify_cid(cid):
     """
     Verify CID integrity across storage and blockchain
