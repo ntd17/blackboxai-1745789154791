@@ -1,0 +1,74 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}
+<span class="lang" data-key="contracts_management_title"></span>
+{% endblock %}
+
+{% block header %}
+<span class="lang" data-key="contracts_management_header"></span>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="input-field col s12 m6">
+    <input id="search" type="text" class="validate" placeholder="" />
+    <label for="search" class="active">
+      <span class="lang" data-key="search_contracts"></span>
+    </label>
+  </div>
+  <div class="input-field col s6 m3">
+    <select id="status-filter">
+      <option value="" selected><span class="lang" data-key="all_status"></span></option>
+      <option value="draft"><span class="lang" data-key="status_draft"></span></option>
+      <option value="pending"><span class="lang" data-key="status_pending"></span></option>
+      <option value="signed"><span class="lang" data-key="status_signed"></span></option>
+      <option value="cancelled"><span class="lang" data-key="status_cancelled"></span></option>
+    </select>
+    <label><span class="lang" data-key="filter_status"></span></label>
+  </div>
+  <div class="input-field col s6 m3">
+    <select id="date-filter">
+      <option value="" selected><span class="lang" data-key="all_dates"></span></option>
+      <option value="today"><span class="lang" data-key="date_today"></span></option>
+      <option value="week"><span class="lang" data-key="date_week"></span></option>
+      <option value="month"><span class="lang" data-key="date_month"></span></option>
+    </select>
+    <label><span class="lang" data-key="filter_date"></span></label>
+  </div>
+</div>
+
+<div class="responsive-table">
+  <table class="highlight">
+    <thead>
+      <tr>
+        <th><span class="lang" data-key="contract"></span></th>
+        <th><span class="lang" data-key="status"></span></th>
+        <th><span class="lang" data-key="parties"></span></th>
+        <th><span class="lang" data-key="duration"></span></th>
+        <th><span class="lang" data-key="created"></span></th>
+        <th><span class="lang" data-key="actions"></span></th>
+      </tr>
+    </thead>
+    <tbody id="contracts-table-body">
+      <tr>
+        <td>Example Contract</td>
+        <td><span class="new badge green" data-badge-caption=""><span class="lang" data-key="status_signed"></span></span></td>
+        <td>John Doe / Paint Pro</td>
+        <td>7 <small>(<span class="lang" data-key="adjusted"></span>: 9)</small></td>
+        <td>2024-06-01</td>
+        <td>
+          <a href="#" class="btn-small blue">
+            <i class="material-icons">visibility</i>
+          </a>
+          <a href="#" class="btn-small green">
+            <i class="material-icons">file_download</i>
+          </a>
+          <a href="#" class="btn-small red">
+            <i class="material-icons">cancel</i>
+          </a>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}
