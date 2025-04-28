@@ -2,14 +2,18 @@ from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from flasgger import Swagger
 from config import Config
 from app.utils.error_handlers import register_error_handlers
 from app.utils.response_utils import success_response, error_response
 from app.utils.logger import init_app as init_logger
+from app.utils.cache import Cache
 
 db = SQLAlchemy()
 migrate = Migrate()
+limiter = Limiter(key_func=get_remote_address)
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -19,6 +23,12 @@ def create_app(config_class=Config):
     db.init_app(app)
     migrate.init_app(app, db)
     CORS(app)
+    
+    # Initialize rate limiter
+    limiter.init_app(app)
+    
+    # Initialize Redis cache
+    app.cache = Cache(app.config['REDIS_URL'])
     
     # Initialize logger
     init_logger(app)
