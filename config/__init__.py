@@ -18,7 +18,7 @@ class Config:
     # Rate Limiting
     RATELIMIT_DEFAULT = "200 per day"  # Default rate limit
     RATELIMIT_STORAGE_URL = REDIS_URL
-    RATELIMIT_STRATEGY = 'fixed-window-elastic-expiry'
+    RATELIMIT_STRATEGY = 'fixed-window'  # Valid options: fixed-window, moving-window
     RATELIMIT_HEADERS_ENABLED = True
     
     # API Rate Limits
