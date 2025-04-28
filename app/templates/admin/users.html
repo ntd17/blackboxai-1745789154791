@@ -1,0 +1,105 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}
+<span class="lang" data-key="users_management_title"></span>
+{% endblock %}
+
+{% block header %}
+<span class="lang" data-key="users_management_header"></span>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="input-field col s12 m6">
+    <input id="search" type="text" class="validate" placeholder="" />
+    <label for="search" class="active">
+      <span class="lang" data-key="search_users"></span>
+    </label>
+  </div>
+  <div class="input-field col s6 m3">
+    <select id="role-filter">
+      <option value="" selected><span class="lang" data-key="all_roles"></span></option>
+      <option value="admin"><span class="lang" data-key="role_admin"></span></option>
+      <option value="user"><span class="lang" data-key="role_user"></span></option>
+    </select>
+    <label><span class="lang" data-key="filter_role"></span></label>
+  </div>
+  <div class="input-field col s6 m3">
+    <select id="status-filter">
+      <option value="" selected><span class="lang" data-key="all_status"></span></option>
+      <option value="active"><span class="lang" data-key="status_active"></span></option>
+      <option value="inactive"><span class="lang" data-key="status_inactive"></span></option>
+    </select>
+    <label><span class="lang" data-key="filter_status"></span></label>
+  </div>
+</div>
+
+<div class="responsive-table">
+  <table class="highlight">
+    <thead>
+      <tr>
+        <th><span class="lang" data-key="user"></span></th>
+        <th><span class="lang" data-key="role"></span></th>
+        <th><span class="lang" data-key="status"></span></th>
+        <th><span class="lang" data-key="contracts"></span></th>
+        <th><span class="lang" data-key="last_active"></span></th>
+        <th><span class="lang" data-key="actions"></span></th>
+      </tr>
+    </thead>
+    <tbody id="users-table-body">
+      <tr>
+        <td>John Doe</td>
+        <td><span class="new badge purple" data-badge-caption=""><span class="lang" data-key="role_admin"></span></span></td>
+        <td><span class="new badge green" data-badge-caption=""><span class="lang" data-key="status_active"></span></span></td>
+        <td>5</td>
+        <td>2024-06-01 10:00</td>
+        <td>
+          <button class="btn-small blue" onclick="viewUser(1)">
+            <i class="material-icons">visibility</i>
+          </button>
+          <button class="btn-small red" onclick="toggleUserStatus(1)">
+            <i class="material-icons">block</i>
+          </button>
+        </td>
+      </tr>
+      <tr>
+        <td>Jane Smith</td>
+        <td><span class="new badge grey" data-badge-caption=""><span class="lang" data-key="role_user"></span></span></td>
+        <td><span class="new badge red" data-badge-caption=""><span class="lang" data-key="status_inactive"></span></span></td>
+        <td>2</td>
+        <td>2024-05-28 15:30</td>
+        <td>
+          <button class="btn-small blue" onclick="viewUser(2)">
+            <i class="material-icons">visibility</i>
+          </button>
+          <button class="btn-small green" onclick="toggleUserStatus(2)">
+            <i class="material-icons">check</i>
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+function viewUser(userId) {
+  alert('View user: ' + userId);
+}
+
+function toggleUserStatus(userId) {
+  if (confirm('Are you sure you want to change this user\'s status?')) {
+    fetch(`/api/admin/users/${userId}/toggle-status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    }).then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          location.reload();
+        } else {
+          alert('Failed to update user status');
+        }
+      });
+  }
+}
+</script>
+{% endblock %}
