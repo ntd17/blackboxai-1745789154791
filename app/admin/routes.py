@@ -1,14 +1,37 @@
-from flask import Blueprint, render_template, jsonify, request
+from flask import Blueprint, render_template, jsonify, request, current_app
 from app.auth.middleware import admin_required
 from app.models.user import User
 from app.models.contract import Contract
 from app.models.upload import Upload
+from app.models.settings import Settings
 from app.utils.response_utils import success_response, error_response
 from datetime import datetime, timedelta
 import psutil
 import os
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
+
+@admin_bp.route('/signature-settings', methods=['GET'])
+@admin_required()
+def signature_settings():
+    """Render signature settings page"""
+    default_method = Settings.get_default_signature_method()
+    return render_template('admin/signature_settings.html', default_method=default_method)
+
+@admin_bp.route('/api/signature/default-method', methods=['GET', 'PUT'])
+@admin_required()
+def manage_default_signature_method():
+    if request.method == 'GET':
+        default_method = Settings.get_default_signature_method()
+        return success_response({'default_method': default_method})
+    elif request.method == 'PUT':
+        data = request.get_json()
+        method = data.get('method')
+        try:
+            Settings.set_default_signature_method(method)
+            return success_response({'default_method': method})
+        except ValueError as e:
+            return error_response(str(e), 400)
 
 @admin_bp.route('/')
 @admin_required()
