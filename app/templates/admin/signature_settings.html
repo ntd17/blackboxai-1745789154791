@@ -1,0 +1,174 @@
+{% extends "admin/base_admin.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <h1 class="text-2xl font-bold mb-6">Signature Method Settings</h1>
+
+        <!-- Current Settings -->
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold mb-4">Current Configuration</h2>
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <p class="mb-2">
+                    <span class="font-medium">Default Signature Method:</span>
+                    <span id="current-method" class="ml-2 text-blue-600">{{ default_method }}</span>
+                </p>
+                <p class="text-sm text-gray-600">
+                    This is the default method that will be used when no specific method is selected.
+                </p>
+            </div>
+        </div>
+
+        <!-- Method Selection -->
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold mb-4">Update Default Method</h2>
+            <form id="signature-method-form" class="space-y-4">
+                <div class="space-y-4">
+                    <!-- Click Only -->
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            <input id="signature_click_only" name="signature_method" type="radio" value="signature_click_only"
+                                class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                        </div>
+                        <div class="ml-3">
+                            <label for="signature_click_only" class="font-medium text-gray-900">Simple Click Signature</label>
+                            <p class="text-gray-500">Basic signature with click confirmation only</p>
+                        </div>
+                    </div>
+
+                    <!-- Email Token -->
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            <input id="signature_token_email" name="signature_method" type="radio" value="signature_token_email"
+                                class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                        </div>
+                        <div class="ml-3">
+                            <label for="signature_token_email" class="font-medium text-gray-900">Email Token Verification</label>
+                            <p class="text-gray-500">Secure token sent via email for verification</p>
+                        </div>
+                    </div>
+
+                    <!-- ICP Upload -->
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            <input id="signature_icp_upload" name="signature_method" type="radio" value="signature_icp_upload"
+                                class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                        </div>
+                        <div class="ml-3">
+                            <label for="signature_icp_upload" class="font-medium text-gray-900">ICP-Brasil Certificate Upload</label>
+                            <p class="text-gray-500">Upload pre-signed PDF with ICP-Brasil certificate</p>
+                        </div>
+                    </div>
+
+                    <!-- ICP Direct -->
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            <input id="signature_icp_direct" name="signature_method" type="radio" value="signature_icp_direct"
+                                class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                        </div>
+                        <div class="ml-3">
+                            <label for="signature_icp_direct" class="font-medium text-gray-900">ICP-Brasil Direct Signature</label>
+                            <p class="text-gray-500">Sign directly with ICP-Brasil certificate within platform</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-4">
+                    <button type="submit"
+                        class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        Update Default Method
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Method Information -->
+        <div class="space-y-6">
+            <h2 class="text-xl font-semibold">Method Details</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Simple Click -->
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h3 class="font-semibold text-lg mb-2">Simple Click Signature</h3>
+                    <ul class="list-disc list-inside space-y-2 text-gray-600">
+                        <li>Basic signature confirmation</li>
+                        <li>No additional verification</li>
+                        <li>Fastest signing process</li>
+                        <li>Suitable for low-risk documents</li>
+                    </ul>
+                </div>
+
+                <!-- Email Token -->
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h3 class="font-semibold text-lg mb-2">Email Token Verification</h3>
+                    <ul class="list-disc list-inside space-y-2 text-gray-600">
+                        <li>Secure token via email</li>
+                        <li>Two-factor authentication</li>
+                        <li>Enhanced security</li>
+                        <li>Suitable for medium-risk documents</li>
+                    </ul>
+                </div>
+
+                <!-- ICP Upload -->
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h3 class="font-semibold text-lg mb-2">ICP-Brasil Certificate Upload</h3>
+                    <ul class="list-disc list-inside space-y-2 text-gray-600">
+                        <li>Upload signed PDF</li>
+                        <li>Validates ICP-Brasil signature</li>
+                        <li>Legal validity</li>
+                        <li>Suitable for high-risk documents</li>
+                    </ul>
+                </div>
+
+                <!-- ICP Direct -->
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h3 class="font-semibold text-lg mb-2">ICP-Brasil Direct Signature</h3>
+                    <ul class="list-disc list-inside space-y-2 text-gray-600">
+                        <li>Direct certificate integration</li>
+                        <li>Secure certificate handling</li>
+                        <li>Full legal validity</li>
+                        <li>Suitable for high-risk documents</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for form handling -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set current method
+    const currentMethod = document.getElementById('current-method').textContent.trim();
+    document.querySelector(`input[value="${currentMethod}"]`).checked = true;
+
+    // Handle form submission
+    document.getElementById('signature-method-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const method = document.querySelector('input[name="signature_method"]:checked').value;
+        
+        try {
+            const response = await fetch('/admin/api/signature/default-method', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ method: method })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                document.getElementById('current-method').textContent = method;
+                alert('Default signature method updated successfully');
+            } else {
+                throw new Error(data.message || 'Update failed');
+            }
+        } catch (error) {
+            alert('Error updating signature method: ' + error.message);
+        }
+    });
+});
+</script>
+{% endblock %}
