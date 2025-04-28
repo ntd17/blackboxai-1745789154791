@@ -1,0 +1,356 @@
+{% extends "base_public.html" %}
+
+{% block title %}My Contracts{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="sm:flex sm:items-center sm:justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">
+                <span class="lang" data-key="contracts_title">My Contracts</span>
+            </h1>
+            <p class="mt-2 text-sm text-gray-700">
+                <span class="lang" data-key="contracts_description">Manage and track your painting contracts</span>
+            </p>
+        </div>
+        <div class="mt-4 sm:mt-0">
+            <button onclick="window.location.href='{{ url_for('contract.create') }}'"
+                    class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                <i class="fas fa-plus mr-2"></i>
+                <span class="lang" data-key="new_contract">New Contract</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white shadow rounded-lg p-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">
+                    <span class="lang" data-key="filter_status">Status</span>
+                </label>
+                <select id="status-filter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 rounded-md">
+                    <option value="all">All</option>
+                    <option value="draft">Draft</option>
+                    <option value="pending_signature">Pending Signature</option>
+                    <option value="signed">Signed</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">
+                    <span class="lang" data-key="filter_date">Date Range</span>
+                </label>
+                <input type="date" id="date-filter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 rounded-md">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">
+                    <span class="lang" data-key="filter_search">Search</span>
+                </label>
+                <div class="mt-1 relative rounded-md shadow-sm">
+                    <input type="text" id="search-filter" 
+                           class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                           placeholder="Search contracts...">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-search text-gray-400"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contracts List -->
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="divide-y divide-gray-200" id="contracts-list">
+            {% for contract in contracts %}
+            <div class="p-6 hover:bg-gray-50 transition-colors duration-200 contract-item"
+                 data-status="{{ contract.status }}"
+                 data-date="{{ contract.created_at.strftime('%Y-%m-%d') }}">
+                <div class="flex items-center justify-between">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center">
+                            <h3 class="text-lg font-medium text-gray-900 truncate">{{ contract.title }}</h3>
+                            <!-- Status Badge -->
+                            <span class="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                       {% if contract.status == 'draft' %}bg-gray-100 text-gray-800
+                                       {% elif contract.status == 'pending_signature' %}bg-yellow-100 text-yellow-800
+                                       {% elif contract.status == 'signed' %}bg-green-100 text-green-800
+                                       {% else %}bg-red-100 text-red-800{% endif %}">
+                                {{ contract.status|title }}
+                            </span>
+                        </div>
+                        <div class="mt-1 flex items-center text-sm text-gray-500 space-x-4">
+                            <div>
+                                <i class="fas fa-calendar-alt mr-1"></i>
+                                {{ contract.created_at.strftime('%Y-%m-%d') }}
+                            </div>
+                            <div>
+                                <i class="fas fa-user mr-1"></i>
+                                {{ contract.contractor_name }}
+                            </div>
+                            <div>
+                                <i class="fas fa-paint-roller mr-1"></i>
+                                {{ contract.provider_name }}
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Action Buttons -->
+                    <div class="ml-4 flex items-center space-x-3">
+                        <!-- View Button -->
+                        <button onclick="viewContract('{{ contract.id }}')"
+                                class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded text-primary-600 hover:text-primary-700 focus:outline-none">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        
+                        {% if contract.status == 'pending_signature' %}
+                        <!-- Sign Button -->
+                        <button onclick="signContract('{{ contract.id }}')"
+                                class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded text-green-600 hover:text-green-700 focus:outline-none">
+                            <i class="fas fa-signature"></i>
+                        </button>
+                        {% endif %}
+                        
+                        {% if contract.status == 'draft' %}
+                        <!-- Request Signature Button -->
+                        <button onclick="requestSignature('{{ contract.id }}')"
+                                class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded text-blue-600 hover:text-blue-700 focus:outline-none">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                        
+                        <!-- Cancel Button -->
+                        <button onclick="cancelContract('{{ contract.id }}')"
+                                class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded text-red-600 hover:text-red-700 focus:outline-none">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        {% endif %}
+                        
+                        <!-- Download Button -->
+                        <button onclick="downloadContract('{{ contract.id }}')"
+                                class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded text-gray-600 hover:text-gray-700 focus:outline-none">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Weather Prediction Info -->
+                {% if contract.weather_prediction %}
+                <div class="mt-4 bg-blue-50 rounded-md p-4">
+                    <div class="flex items-center">
+                        <i class="fas fa-cloud-sun text-blue-400 mr-3 text-lg"></i>
+                        <div>
+                            <h4 class="text-sm font-medium text-blue-800">Weather Prediction</h4>
+                            <p class="mt-1 text-sm text-blue-600">
+                                Rain Probability: {{ "%.1f"|format(contract.weather_prediction.rain_probability * 100) }}%
+                                | Recommended Duration: {{ contract.weather_prediction.adjusted_duration }} days
+                                | Confidence: {{ "%.1f"|format(contract.weather_prediction.confidence_score * 100) }}%
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Signature Modal -->
+<div id="signature-modal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
+    <div class="bg-white rounded-lg p-6 max-w-lg w-full">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-medium text-gray-900">Sign Contract</h3>
+            <button onclick="closeSignatureModal()" class="text-gray-400 hover:text-gray-500">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="space-y-4">
+            <!-- Signature Canvas -->
+            <div class="border-2 border-gray-300 rounded-lg">
+                <canvas id="signature-canvas" class="w-full h-64"></canvas>
+            </div>
+            <div class="flex justify-between">
+                <button onclick="clearSignature()"
+                        class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                    Clear
+                </button>
+                <button onclick="submitSignature()"
+                        class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                    Submit Signature
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let signatureCanvas, signatureCtx;
+let currentContractId;
+
+// Initialize filters
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize signature canvas
+    signatureCanvas = document.getElementById('signature-canvas');
+    signatureCtx = signatureCanvas.getContext('2d');
+    
+    // Set canvas size
+    function resizeCanvas() {
+        const container = signatureCanvas.parentElement;
+        signatureCanvas.width = container.offsetWidth;
+        signatureCanvas.height = container.offsetHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    
+    // Initialize signature drawing
+    let isDrawing = false;
+    let lastX = 0;
+    let lastY = 0;
+    
+    signatureCanvas.addEventListener('mousedown', startDrawing);
+    signatureCanvas.addEventListener('mousemove', draw);
+    signatureCanvas.addEventListener('mouseup', stopDrawing);
+    signatureCanvas.addEventListener('mouseout', stopDrawing);
+    
+    function startDrawing(e) {
+        isDrawing = true;
+        [lastX, lastY] = [e.offsetX, e.offsetY];
+    }
+    
+    function draw(e) {
+        if (!isDrawing) return;
+        
+        signatureCtx.beginPath();
+        signatureCtx.moveTo(lastX, lastY);
+        signatureCtx.lineTo(e.offsetX, e.offsetY);
+        signatureCtx.strokeStyle = '#000';
+        signatureCtx.lineWidth = 2;
+        signatureCtx.lineCap = 'round';
+        signatureCtx.stroke();
+        
+        [lastX, lastY] = [e.offsetX, e.offsetY];
+    }
+    
+    function stopDrawing() {
+        isDrawing = false;
+    }
+    
+    // Initialize filters
+    document.getElementById('status-filter').addEventListener('change', filterContracts);
+    document.getElementById('date-filter').addEventListener('input', filterContracts);
+    document.getElementById('search-filter').addEventListener('input', filterContracts);
+});
+
+function filterContracts() {
+    const status = document.getElementById('status-filter').value;
+    const date = document.getElementById('date-filter').value;
+    const search = document.getElementById('search-filter').value.toLowerCase();
+    
+    document.querySelectorAll('.contract-item').forEach(item => {
+        const itemStatus = item.dataset.status;
+        const itemDate = item.dataset.date;
+        const itemText = item.textContent.toLowerCase();
+        
+        const statusMatch = status === 'all' || status === itemStatus;
+        const dateMatch = !date || itemDate === date;
+        const searchMatch = !search || itemText.includes(search);
+        
+        item.style.display = statusMatch && dateMatch && searchMatch ? 'block' : 'none';
+    });
+}
+
+function viewContract(contractId) {
+    window.location.href = `/contracts/${contractId}`;
+}
+
+function signContract(contractId) {
+    currentContractId = contractId;
+    document.getElementById('signature-modal').classList.remove('hidden');
+}
+
+function closeSignatureModal() {
+    document.getElementById('signature-modal').classList.add('hidden');
+    clearSignature();
+}
+
+function clearSignature() {
+    signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+}
+
+async function submitSignature() {
+    const signatureData = signatureCanvas.toDataURL();
+    
+    try {
+        const response = await fetch(`/api/contrato/assinar/${currentContractId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                signature_data: signatureData
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showToast('Contract signed successfully', 'success');
+            closeSignatureModal();
+            location.reload();
+        } else {
+            showToast(data.error || 'Failed to sign contract', 'error');
+        }
+    } catch (error) {
+        showToast('Error signing contract', 'error');
+    }
+}
+
+async function requestSignature(contractId) {
+    try {
+        const response = await fetch(`/api/contrato/solicitar/${contractId}`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showToast('Signature request sent successfully', 'success');
+            location.reload();
+        } else {
+            showToast(data.error || 'Failed to request signature', 'error');
+        }
+    } catch (error) {
+        showToast('Error requesting signature', 'error');
+    }
+}
+
+async function cancelContract(contractId) {
+    if (!confirm('Are you sure you want to cancel this contract?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/contrato/cancelar/${contractId}`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showToast('Contract cancelled successfully', 'success');
+            location.reload();
+        } else {
+            showToast(data.error || 'Failed to cancel contract', 'error');
+        }
+    } catch (error) {
+        showToast('Error cancelling contract', 'error');
+    }
+}
+
+function downloadContract(contractId) {
+    window.location.href = `/api/contrato/download/${contractId}`;
+}
+</script>
+{% endblock %}
