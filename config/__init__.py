@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from dotenv import load_dotenv
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -7,6 +8,24 @@ load_dotenv(os.path.join(os.path.dirname(basedir), '.env'))
 class Config:
     # Flask
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'you-will-never-guess'
+    
+    # Redis Cache
+    REDIS_URL = os.environ.get('REDIS_URL') or 'redis://redis:6379/0'
+    CACHE_TYPE = 'redis'
+    CACHE_REDIS_URL = REDIS_URL
+    CACHE_DEFAULT_TIMEOUT = int(os.environ.get('CACHE_DEFAULT_TIMEOUT', 3600))
+    
+    # Rate Limiting
+    RATELIMIT_DEFAULT = "200 per day"  # Default rate limit
+    RATELIMIT_STORAGE_URL = REDIS_URL
+    RATELIMIT_STRATEGY = 'fixed-window-elastic-expiry'
+    RATELIMIT_HEADERS_ENABLED = True
+    
+    # API Rate Limits
+    RATELIMIT_API_DEFAULT = "100 per hour"
+    RATELIMIT_API_WEATHER = "500 per day"  # Weather API specific limit
+    RATELIMIT_API_ML = "1000 per day"      # ML predictions limit
+    RATELIMIT_API_BLOCKCHAIN = "50 per hour"  # Blockchain operations limit
     
     # Database
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
