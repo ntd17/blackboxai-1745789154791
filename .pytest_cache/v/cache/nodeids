@@ -1,3 +1,25 @@
 [
-  "tests/test_contract_routes.py::test_generate_contract"
+  "tests/test_contract_routes.py::test_contract_model",
+  "tests/test_contract_routes.py::test_estimate_gas_cost",
+  "tests/test_contract_routes.py::test_generate_contract",
+  "tests/test_contract_routes.py::test_get_contract_status",
+  "tests/test_contract_routes.py::test_weather_prediction_model",
+  "tests/test_signature_routes.py::test_blockchain_integration",
+  "tests/test_signature_routes.py::test_get_signature_status",
+  "tests/test_signature_routes.py::test_sign_contract",
+  "tests/test_signature_routes.py::test_smart_contract",
+  "tests/test_signature_routes.py::test_validate_signature",
+  "tests/test_storage_routes.py::test_get_cid_info",
+  "tests/test_storage_routes.py::test_list_cids",
+  "tests/test_storage_routes.py::test_storacha_integration",
+  "tests/test_storage_routes.py::test_upload_file",
+  "tests/test_storage_routes.py::test_upload_model",
+  "tests/test_train_model.py::test_collect_weather_data",
+  "tests/test_train_model.py::test_training_process",
+  "tests/test_user_routes.py::test_get_user",
+  "tests/test_user_routes.py::test_get_users",
+  "tests/test_user_routes.py::test_register_user",
+  "tests/test_user_routes.py::test_user_model",
+  "tests/test_user_routes.py::test_user_relationships",
+  "tests/test_user_routes.py::test_user_validation"
 ]
