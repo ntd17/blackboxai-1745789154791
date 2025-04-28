@@ -1,0 +1,7 @@
+{
+  "tests/test_contract_routes.py::test_generate_contract": true,
+  "tests/test_contract_routes.py::test_get_contract_status": true,
+  "tests/test_contract_routes.py::test_estimate_gas_cost": true,
+  "tests/test_contract_routes.py::test_contract_model": true,
+  "tests/test_contract_routes.py::test_weather_prediction_model": true
+}
