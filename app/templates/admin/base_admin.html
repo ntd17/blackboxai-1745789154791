@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}<span class="lang" data-key="admin_panel_title"></span>{% endblock %}</title>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <style>
+    /* Sidebar styles */
+    .sidenav {
+      width: 250px;
+    }
+    main {
+      margin-left: 250px;
+      padding: 20px;
+    }
+    @media only screen and (max-width: 992px) {
+      main {
+        margin-left: 0;
+      }
+    }
+  </style>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+  <header>
+    <ul id="slide-out" class="sidenav sidenav-fixed">
+      <li><div class="user-view">
+        <div class="background blue darken-3"></div>
+        <a href="#user"><img class="circle" src="{{ current_user.avatar_url or url_for('static', filename='img/admin_avatar.png') }}"></a>
+        <a href="#name"><span class="white-text name">{{ current_user.name }}</span></a>
+        <a href="#email"><span class="white-text email">{{ current_user.email }}</span></a>
+      </div></li>
+      <li><a href="{{ url_for('admin.dashboard') }}" class="waves-effect"><i class="material-icons">dashboard</i><span class="lang" data-key="nav_dashboard"></span></a></li>
+      <li><a href="{{ url_for('admin.contracts') }}" class="waves-effect"><i class="material-icons">description</i><span class="lang" data-key="nav_contracts"></span></a></li>
+      <li><a href="{{ url_for('admin.users') }}" class="waves-effect"><i class="material-icons">people</i><span class="lang" data-key="nav_users"></span></a></li>
+      <li><div class="divider"></div></li>
+      <li><a href="{{ url_for('auth.logout') }}" class="waves-effect"><i class="material-icons">exit_to_app</i><span class="lang" data-key="nav_logout"></span></a></li>
+    </ul>
+    <a href="#" data-target="slide-out" class="sidenav-trigger show-on-large"><i class="material-icons">menu</i></a>
+  </header>
+
+  <main>
+    <h1>{% block header %}{% endblock %}</h1>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="page-footer blue darken-3">
+    <div class="container">
+      <div class="row">
+        <div class="col s12">
+          <p class="white-text center-align">
+            &copy; {{ now.year }} <span class="lang" data-key="admin_panel_title"></span>
+          </p>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script src="{{ url_for('static', filename='js/translations.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var elems = document.querySelectorAll('.sidenav');
+      M.Sidenav.init(elems);
+      initializeLanguage();
+    });
+  </script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>
