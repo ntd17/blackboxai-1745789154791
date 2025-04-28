@@ -10,9 +10,22 @@ from app.services.email_service import send_contract_email
 from app.services.storacha import StorachaClient
 from app.blockchain.web3_client import Web3Client
 from datetime import datetime, timedelta
+from app.utils.validators.marshmallow_schemas import ContractSchema
+from app.utils.error_handlers import ValidationError, BlockchainError
+from app.utils.cache import cached
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+# Initialize rate limiter
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_url=current_app.config['REDIS_URL']
+)
 
 @contract_bp.route('/contrato/gerar', methods=['POST'])
 @contract_bp.route('/api/contrato/gerar', methods=['POST'])
+@limiter.limit("20/hour")  # Stricter limit for contract generation
 def generate_contract():
     """
     Generate a new painting contract with weather-based duration prediction
@@ -23,47 +36,32 @@ def generate_contract():
       - in: body
         name: body
         schema:
-          type: object
-          required:
-            - creator_id
-            - title
-            - location
-            - planned_start_date
-            - planned_duration_days
-            - contractor_details
-            - provider_details
-            - payment_details
+          $ref: '#/definitions/ContractRequest'
     responses:
       201:
         description: Contract generated successfully
       400:
         description: Invalid input data
+      429:
+        description: Rate limit exceeded
       500:
         description: Contract generation failed
     """
     try:
-        data = request.get_json()
-        
-        # Validate required fields
-        required_fields = [
-            'creator_id', 'title', 'location', 'planned_start_date',
-            'planned_duration_days', 'contractor_details', 'provider_details',
-            'payment_details'
-        ]
-        
-        if not all(field in data for field in required_fields):
+        # Validate request data using Marshmallow schema
+        schema = ContractSchema()
+        try:
+            data = schema.load(request.get_json())
+        except ValidationError as e:
             return jsonify({
-                'error': 'Missing required fields',
-                'required': required_fields
+                'error': 'Validation error',
+                'details': e.messages
             }), 400
             
         # Parse dates
-        try:
-            start_date = datetime.strptime(data['planned_start_date'], '%Y-%m-%d').date()
-        except ValueError:
-            return jsonify({'error': 'Invalid date format'}), 400
+        start_date = datetime.strptime(data['planned_start_date'], '%Y-%m-%d').date()
             
-        # Get weather prediction
+        # Get weather prediction with caching
         weather_service = WeatherService(
             api_key=current_app.config['OPENWEATHER_API_KEY']
         )
@@ -90,7 +88,7 @@ def generate_contract():
         )
         
         db.session.add(contract)
-        db.session.flush()  # Get contract ID without committing
+        db.session.flush()
         
         # Create weather prediction
         weather_prediction = WeatherPrediction(
@@ -104,7 +102,7 @@ def generate_contract():
         
         weather_prediction.process_daily_forecasts()
         
-        # Get ML prediction
+        # Get ML prediction with caching
         ml_predictor = MLPredictor(
             model_path=current_app.config['ML_MODEL_PATH']
         )
@@ -162,6 +160,7 @@ def generate_contract():
             contract.blockchain_tx = tx_hash
         except Exception as e:
             current_app.logger.error(f"Blockchain registration failed: {str(e)}")
+            raise BlockchainError("Failed to register contract on blockchain", str(e))
         
         # Send email notification
         try:
@@ -176,10 +175,28 @@ def generate_contract():
         db.session.commit()
         
         return jsonify({
+            'success': True,
             'message': 'Contract generated successfully',
-            'contract': contract.to_dict(),
-            'weather_prediction': weather_prediction.to_dict()
+            'data': {
+                'contract': contract.to_dict(),
+                'weather_prediction': weather_prediction.to_dict()
+            }
         }), 201
+        
+    except ValidationError as e:
+        db.session.rollback()
+        return jsonify({
+            'error': 'Validation error',
+            'details': e.messages
+        }), 400
+        
+    except BlockchainError as e:
+        db.session.rollback()
+        return jsonify({
+            'error': 'Blockchain error',
+            'message': str(e),
+            'details': e.payload
+        }), 500
         
     except Exception as e:
         db.session.rollback()
@@ -191,6 +208,8 @@ def generate_contract():
 
 @contract_bp.route('/contrato/status/<string:cid>', methods=['GET'])
 @contract_bp.route('/api/status/<string:cid>', methods=['GET'])
+@limiter.limit("100/hour")
+@cached(timeout=300)  # Cache for 5 minutes
 def get_contract_status(cid):
     """
     Get contract status by CID
@@ -208,6 +227,8 @@ def get_contract_status(cid):
         description: Contract status
       404:
         description: Contract not found
+      429:
+        description: Rate limit exceeded
     """
     contract = Contract.query.filter(
         (Contract.initial_cid == cid) | (Contract.signed_cid == cid)
@@ -236,7 +257,10 @@ def get_contract_status(cid):
         if contract.weather_prediction:
             response['weather_prediction'] = contract.weather_prediction.to_dict()
         
-        return jsonify(response), 200
+        return jsonify({
+            'success': True,
+            'data': response
+        }), 200
         
     except Exception as e:
         current_app.logger.error(f"Error getting contract status: {str(e)}")
@@ -247,6 +271,8 @@ def get_contract_status(cid):
 
 @contract_bp.route('/custo/<string:cid>', methods=['GET'])
 @contract_bp.route('/api/custo/<string:cid>', methods=['GET'])
+@limiter.limit("50/hour")
+@cached(timeout=300)  # Cache for 5 minutes
 def estimate_gas_cost(cid):
     """
     Estimate gas cost for contract operations
@@ -264,6 +290,8 @@ def estimate_gas_cost(cid):
         description: Gas cost estimation
       404:
         description: Contract not found
+      429:
+        description: Rate limit exceeded
     """
     contract = Contract.query.filter(
         (Contract.initial_cid == cid) | (Contract.signed_cid == cid)
@@ -285,9 +313,12 @@ def estimate_gas_cost(cid):
         }
         
         return jsonify({
-            'contract_id': contract.id,
-            'cid': cid,
-            'gas_estimates': estimates
+            'success': True,
+            'data': {
+                'contract_id': contract.id,
+                'cid': cid,
+                'gas_estimates': estimates
+            }
         }), 200
         
     except Exception as e:
