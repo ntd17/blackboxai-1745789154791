@@ -12,6 +12,7 @@ from app.blockchain.web3_client import Web3Client
 from datetime import datetime, timedelta
 
 @contract_bp.route('/contrato/gerar', methods=['POST'])
+@contract_bp.route('/api/contrato/gerar', methods=['POST'])
 def generate_contract():
     """
     Generate a new painting contract with weather-based duration prediction
@@ -189,6 +190,7 @@ def generate_contract():
         }), 500
 
 @contract_bp.route('/contrato/status/<string:cid>', methods=['GET'])
+@contract_bp.route('/api/status/<string:cid>', methods=['GET'])
 def get_contract_status(cid):
     """
     Get contract status by CID
@@ -244,6 +246,7 @@ def get_contract_status(cid):
         }), 500
 
 @contract_bp.route('/custo/<string:cid>', methods=['GET'])
+@contract_bp.route('/api/custo/<string:cid>', methods=['GET'])
 def estimate_gas_cost(cid):
     """
     Estimate gas cost for contract operations
