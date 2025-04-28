@@ -1,44 +1,72 @@
-# Deployment Guide for Production
+# Deployment Guide
 
-## Deploying with Docker and Apache
+This document describes the deployment process for the Painting Contract System, including dynamic domain handling for the webserver.
 
-1. Build and start the production containers:
+## Prerequisites
 
-```bash
-docker-compose -f docker-compose.prod.yml up --build -d
+- Docker and Docker Compose installed
+- SSL certificates for your domain (placed under `nginx/ssl/live/$SERVER_NAME/`)
+- Environment variables configured, including `SERVER_NAME`
+
+## Dynamic Domain Handling
+
+The webserver configuration uses a dynamic domain name via the `SERVER_NAME` environment variable.
+
+### How it works
+
+- Nginx configuration files are templates located in `nginx/templates/`.
+- At container startup, the entrypoint script renders these templates with the current `SERVER_NAME`.
+- This allows deploying to any domain by simply changing the environment variable without rebuilding images.
+
+### Setting SERVER_NAME
+
+In your `docker-compose.override.yml` or equivalent, set:
+
+```yaml
+services:
+  nginx:
+    environment:
+      - SERVER_NAME=your-domain.com
 ```
 
-2. Verify that the containers are running:
+Replace `your-domain.com` with your actual domain.
 
-```bash
-docker ps
+### SSL Certificates
+
+Place your SSL certificates in:
+
+```
+nginx/ssl/live/your-domain.com/fullchain.pem
+nginx/ssl/live/your-domain.com/privkey.pem
 ```
 
-3. Apache is configured to serve the Flask app and handle SSL termination.
+### Entrypoint Script
 
-## Generating SSL Certificates with Let's Encrypt
+The entrypoint script `nginx/entrypoint.sh` performs the template rendering and starts Nginx.
 
-1. Install Certbot on your server.
+## Starting the Application
 
-2. Run Certbot to obtain certificates:
-
-```bash
-sudo certbot --apache -d yourdomain.com -d www.yourdomain.com
-```
-
-3. Follow the prompts to complete the SSL setup.
-
-4. Certbot will automatically configure Apache to use the certificates.
-
-## Notes
-
-- Ensure ports 80 and 443 are open on your server.
-- Renew certificates automatically with:
+Run:
 
 ```bash
-sudo certbot renew --dry-run
+docker-compose up -d
 ```
 
-- Check Apache configuration files in the `apache/` directory for custom settings.
+This will start all services, including the nginx proxy with dynamic domain handling.
 
-![Deployment](https://images.pexels.com/photos/3861969/pexels-photo-3861969.jpeg)
+## Verifying Deployment
+
+- Access your domain via HTTPS.
+- Verify HTTP requests redirect to HTTPS.
+- Check logs in `logs/nginx/` for any errors.
+- Confirm proxying to the Flask backend works correctly.
+
+## Troubleshooting
+
+- Ensure `SERVER_NAME` is set and matches your SSL certificate domain.
+- Check container logs for errors.
+- Verify SSL certificate files exist in the expected paths.
+
+## Future Extensions
+
+- Multi-domain support via SAN certificates or wildcards can be added by extending the template and environment variables.
