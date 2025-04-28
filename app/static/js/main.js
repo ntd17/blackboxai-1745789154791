@@ -1,192 +1,231 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize all Materialize components
-    initializeMaterialize();
-    
-    // Set up AJAX request handling
-    setupAjaxHandling();
-    
-    // Initialize dynamic content handlers
-    initializeDynamicContent();
-    
-    // Set up form validation
-    setupFormValidation();
-});
-
-// Initialize Materialize components
-function initializeMaterialize() {
-    // Sidenav
-    const sidenavElems = document.querySelectorAll('.sidenav');
-    M.Sidenav.init(sidenavElems);
-
-    // Dropdowns
-    const dropdownElems = document.querySelectorAll('.dropdown-trigger');
-    M.Dropdown.init(dropdownElems, {
-        coverTrigger: false,
-        constrainWidth: false
-    });
-
-    // Floating Action Button
-    const fabElems = document.querySelectorAll('.fixed-action-btn');
-    M.FloatingActionButton.init(fabElems);
-
-    // Modals
-    const modalElems = document.querySelectorAll('.modal');
-    M.Modal.init(modalElems);
-
-    // Select inputs
-    const selectElems = document.querySelectorAll('select');
-    M.FormSelect.init(selectElems);
-
-    // Date pickers
-    const dateElems = document.querySelectorAll('.datepicker');
-    M.Datepicker.init(dateElems, {
-        format: 'yyyy-mm-dd',
-        i18n: getDatepickerTranslations()
-    });
-
-    // Tooltips
-    const tooltipElems = document.querySelectorAll('.tooltipped');
-    M.Tooltip.init(tooltipElems);
-}
-
-// Set up AJAX request handling
-function setupAjaxHandling() {
-    // Add CSRF token to all AJAX requests
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-    if (csrfToken) {
-        $.ajaxSetup({
-            beforeSend: function(xhr, settings) {
-                if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
-                    xhr.setRequestHeader("X-CSRFToken", csrfToken);
-                }
-            }
-        });
-    }
-
-    // Global AJAX error handling
-    $(document).ajaxError(function(event, jqXHR, settings, error) {
-        console.error('AJAX Error:', error);
-        M.toast({
-            html: t('site.error'),
-            classes: 'red'
+    // Initialize tooltips
+    document.querySelectorAll('[data-tooltip]').forEach(element => {
+        tippy(element, {
+            content: element.getAttribute('data-tooltip'),
+            placement: element.getAttribute('data-tooltip-placement') || 'top'
         });
     });
-}
 
-// Initialize dynamic content handlers
-function initializeDynamicContent() {
-    // Handle dynamic content loading
-    $(document).on('click', '[data-load]', function(e) {
-        e.preventDefault();
-        const url = $(this).data('load');
-        const target = $(this).data('target');
-        
-        $(target).html(t('site.loading'));
-        
-        $.get(url)
-            .done(function(response) {
-                $(target).html(response);
-                translateElement($(target)[0]);
-                initializeMaterialize();
-            })
-            .fail(function() {
-                $(target).html(t('site.error'));
-            });
-    });
+    // Initialize toast notifications
+    window.showToast = function(message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
 
-    // Handle dynamic form submission
-    $(document).on('submit', 'form[data-remote]', function(e) {
-        e.preventDefault();
-        const form = $(this);
-        const url = form.attr('action');
-        const method = form.attr('method') || 'POST';
-        
-        $.ajax({
-            url: url,
-            method: method,
-            data: new FormData(form[0]),
-            processData: false,
-            contentType: false
-        })
-        .done(function(response) {
-            if (response.redirect) {
-                window.location.href = response.redirect;
-            } else if (response.message) {
-                M.toast({html: response.message});
-            }
-        })
-        .fail(function(jqXHR) {
-            const message = jqXHR.responseJSON?.error || t('site.error');
-            M.toast({html: message, classes: 'red'});
-        });
-    });
-}
+        const toast = document.createElement('div');
+        const bgColor = {
+            success: 'bg-green-500',
+            error: 'bg-red-500',
+            warning: 'bg-yellow-500',
+            info: 'bg-blue-500'
+        }[type] || 'bg-blue-500';
 
-// Set up form validation
-function setupFormValidation() {
-    $(document).on('submit', 'form[data-validate]', function(e) {
-        const form = $(this)[0];
-        if (form.checkValidity() === false) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            // Show validation messages
-            Array.from(form.elements).forEach(input => {
-                if (!input.validity.valid) {
-                    const errorMessage = input.dataset.errorMsg || getDefaultErrorMessage(input);
-                    M.toast({html: errorMessage, classes: 'red'});
-                }
-            });
-        }
-        form.classList.add('was-validated');
-    });
-}
+        const icon = {
+            success: 'fa-check-circle',
+            error: 'fa-exclamation-circle',
+            warning: 'fa-exclamation-triangle',
+            info: 'fa-info-circle'
+        }[type] || 'fa-info-circle';
 
-// Get default error message based on validation type
-function getDefaultErrorMessage(input) {
-    if (input.validity.valueMissing) {
-        return t('validation.required');
-    }
-    if (input.validity.typeMismatch) {
-        return t('validation.invalid_type');
-    }
-    if (input.validity.patternMismatch) {
-        return t('validation.pattern');
-    }
-    if (input.validity.tooShort) {
-        return t('validation.too_short');
-    }
-    if (input.validity.tooLong) {
-        return t('validation.too_long');
-    }
-    return t('validation.invalid');
-}
+        toast.className = `${bgColor} text-white px-6 py-4 rounded-lg shadow-lg flex items-center space-x-2 mb-4`;
+        toast.innerHTML = `
+            <i class="fas ${icon}"></i>
+            <span>${message}</span>
+            <button onclick="this.parentElement.remove()" class="ml-auto">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
 
-// Get datepicker translations based on current language
-function getDatepickerTranslations() {
-    const translations = {
-        'en': {
-            months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-            monthsShort: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-            weekdays: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-            weekdaysShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-            weekdaysAbbrev: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-        },
-        'pt': {
-            months: ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'],
-            monthsShort: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
-            weekdays: ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'],
-            weekdaysShort: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'],
-            weekdaysAbbrev: ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
-        },
-        'es': {
-            months: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
-            monthsShort: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
-            weekdays: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
-            weekdaysShort: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
-            weekdaysAbbrev: ['D', 'L', 'M', 'M', 'J', 'V', 'S']
-        }
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 5000);
     };
+
+    // Handle mobile menu
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
     
-    return translations[window.i18n.currentLang] || translations['en'];
-}
+    if (mobileMenuButton && mobileMenu) {
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+    }
+
+    // Handle form submissions
+    document.querySelectorAll('form[data-submit="ajax"]').forEach(form => {
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const submitButton = form.querySelector('[type="submit"]');
+            const originalText = submitButton.textContent;
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + t('loading');
+
+            try {
+                const formData = new FormData(form);
+                const response = await fetch(form.action, {
+                    method: form.method,
+                    body: formData,
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showToast(data.message || t('success'), 'success');
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                    }
+                } else {
+                    showToast(data.error || t('error'), 'error');
+                }
+            } catch (error) {
+                showToast(t('error_generic'), 'error');
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = originalText;
+            }
+        });
+    });
+
+    // Handle signature canvas
+    const signatureCanvas = document.getElementById('signature-canvas');
+    if (signatureCanvas) {
+        const ctx = signatureCanvas.getContext('2d');
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+
+        function draw(e) {
+            if (!isDrawing) return;
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(e.offsetX, e.offsetY);
+            ctx.stroke();
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+        }
+
+        signatureCanvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+        });
+        signatureCanvas.addEventListener('mousemove', draw);
+        signatureCanvas.addEventListener('mouseup', () => isDrawing = false);
+        signatureCanvas.addEventListener('mouseout', () => isDrawing = false);
+
+        // Clear signature
+        window.clearSignature = function() {
+            ctx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+        };
+
+        // Get signature data
+        window.getSignatureData = function() {
+            return signatureCanvas.toDataURL();
+        };
+    }
+
+    // Handle contract filters
+    const contractFilters = document.querySelectorAll('[data-filter]');
+    if (contractFilters.length > 0) {
+        contractFilters.forEach(filter => {
+            filter.addEventListener('change', filterContracts);
+        });
+
+        function filterContracts() {
+            const status = document.querySelector('[data-filter="status"]')?.value || 'all';
+            const search = document.querySelector('[data-filter="search"]')?.value?.toLowerCase() || '';
+            const dateFrom = document.querySelector('[data-filter="date-from"]')?.value || '';
+            const dateTo = document.querySelector('[data-filter="date-to"]')?.value || '';
+
+            document.querySelectorAll('.contract-item').forEach(item => {
+                const itemStatus = item.dataset.status;
+                const itemDate = item.dataset.date;
+                const itemText = item.textContent.toLowerCase();
+
+                const statusMatch = status === 'all' || status === itemStatus;
+                const searchMatch = !search || itemText.includes(search);
+                const dateMatch = (!dateFrom || itemDate >= dateFrom) && 
+                                (!dateTo || itemDate <= dateTo);
+
+                item.classList.toggle('hidden', !(statusMatch && searchMatch && dateMatch));
+            });
+        }
+    }
+
+    // Handle weather prediction updates
+    const weatherInputs = document.querySelectorAll('[data-weather-input]');
+    if (weatherInputs.length > 0) {
+        let weatherTimeout;
+        weatherInputs.forEach(input => {
+            input.addEventListener('change', () => {
+                clearTimeout(weatherTimeout);
+                weatherTimeout = setTimeout(updateWeatherPrediction, 1000);
+            });
+        });
+
+        async function updateWeatherPrediction() {
+            const location = {
+                city: document.querySelector('[data-weather-input="city"]').value,
+                country: document.querySelector('[data-weather-input="country"]').value
+            };
+            const startDate = document.querySelector('[data-weather-input="start-date"]').value;
+            const duration = document.querySelector('[data-weather-input="duration"]').value;
+
+            if (!location.city || !location.country || !startDate || !duration) return;
+
+            try {
+                const response = await fetch('/api/ml/predict_rain', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        location,
+                        planned_start_date: startDate,
+                        planned_duration_days: parseInt(duration)
+                    })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    updateWeatherUI(data.data);
+                }
+            } catch (error) {
+                console.error('Weather prediction failed:', error);
+            }
+        }
+
+        function updateWeatherUI(prediction) {
+            const container = document.getElementById('weather-prediction');
+            if (!container) return;
+
+            container.classList.remove('hidden');
+            
+            // Update prediction values
+            document.getElementById('rain-probability').textContent = 
+                formatPercentage(prediction.rain_probability);
+            document.getElementById('recommended-duration').textContent = 
+                t('days', { count: prediction.recommended_duration });
+            document.getElementById('confidence-score').textContent = 
+                formatPercentage(prediction.confidence_score);
+
+            // Update daily forecast
+            const forecastGrid = document.getElementById('daily-forecast');
+            if (forecastGrid && prediction.daily_forecasts) {
+                forecastGrid.innerHTML = prediction.daily_forecasts.map(day => `
+                    <div class="bg-white rounded-lg p-3 shadow-sm">
+                        <div class="text-xs text-gray-500">${formatDate(day.date, 'short')}</div>
+                        <div class="mt-2 flex items-center">
+                            <i class="fas ${day.rain_prob > 0.5 ? 'fa-cloud-rain text-blue-500' : 'fa-sun text-yellow-500'} text-2xl"></i>
+                            <div class="ml-2">
+                                <div class="text-sm font-medium">${formatNumber(day.temp.day, { maximumFractionDigits: 1 })}°C</div>
+                                <div class="text-xs text-gray-500">${formatPercentage(day.rain_prob)} ${t('rain')}</div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+    }
+});
