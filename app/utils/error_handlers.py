@@ -1,10 +1,13 @@
 from flask import jsonify, current_app
 from werkzeug.exceptions import HTTPException
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from web3.exceptions import Web3Exception
 from marshmallow import ValidationError
 import traceback
 from typing import Dict, Any, Optional
+
+class Web3Exception(Exception):
+    """Base exception for Web3 related errors"""
+    pass
 
 def log_error(error: Exception, error_type: str) -> None:
     """
