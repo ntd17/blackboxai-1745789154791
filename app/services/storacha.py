@@ -1,20 +1,82 @@
+import os
 import requests
 from flask import current_app
 import json
-from typing import Optional, Union
+from typing import Optional, Union, Dict
 from werkzeug.datastructures import FileStorage
 import io
+import logging
+
+logger = logging.getLogger(__name__)
+
+class StorachaError(Exception):
+    """Base exception for Storacha client errors"""
+    pass
+
+class StorachaAuthError(StorachaError):
+    """Authentication error with Storacha API"""
+    pass
 
 class StorachaClient:
-    """Client for interacting with Storacha IPFS service"""
+    """Client for interacting with Storacha IPFS service with bridge token authentication"""
     
-    def __init__(self, api_key: str):
-        self.api_key = api_key
+    def __init__(self):
+        self.x_auth_secret = os.getenv('STORACHA_X_AUTH_SECRET')
+        self.auth_token = os.getenv('STORACHA_AUTHORIZATION_TOKEN')
+        
+        if not self.x_auth_secret or not self.auth_token:
+            raise StorachaAuthError("Missing Storacha authentication credentials")
+        
+        self.base_url = 'https://api.storacha.io'
         self.headers = {
-            'Authorization': f'Bearer {api_key}',
+            'X-Auth-Secret': self.x_auth_secret,
+            'Authorization': self.auth_token,
             'Accept': 'application/json'
         }
+    
+    def _make_request(self, method: str, endpoint: str, **kwargs) -> requests.Response:
+        """
+        Make an authenticated request to Storacha API
         
+        Args:
+            method: HTTP method
+            endpoint: API endpoint
+            **kwargs: Additional request arguments
+            
+        Returns:
+            Response object
+            
+        Raises:
+            StorachaAuthError: If authentication fails
+            StorachaError: For other API errors
+        """
+        url = f"{self.base_url}/{endpoint.lstrip('/')}"
+        
+        # Ensure headers are included
+        if 'headers' in kwargs:
+            kwargs['headers'].update(self.headers)
+        else:
+            kwargs['headers'] = self.headers
+        
+        try:
+            response = requests.request(method, url, **kwargs)
+            
+            # Handle authentication errors
+            if response.status_code == 401:
+                logger.error("Storacha authentication failed")
+                raise StorachaAuthError("Invalid authentication credentials")
+            
+            # Handle other errors
+            if response.status_code >= 400:
+                logger.error(f"Storacha API error: {response.text}")
+                raise StorachaError(f"API request failed: {response.status_code}")
+            
+            return response
+            
+        except requests.RequestException as e:
+            logger.error(f"Request to Storacha failed: {str(e)}")
+            raise StorachaError(f"Request failed: {str(e)}")
+    
     def upload_file(self, file: FileStorage) -> Optional[str]:
         """
         Upload a file to Storacha
@@ -24,28 +86,31 @@ class StorachaClient:
             
         Returns:
             str: IPFS CID if successful, None otherwise
+            
+        Raises:
+            StorachaAuthError: If authentication fails
+            StorachaError: For other upload errors
         """
         try:
-            # Create multipart form data
+            logger.info(f"Uploading file: {file.filename}")
+            
             files = {
                 'file': (file.filename, file.stream, file.content_type)
             }
             
-            response = requests.post(
-                'https://api.storacha.io/upload',
-                headers=self.headers,
-                files=files
-            )
-            
-            response.raise_for_status()
+            response = self._make_request('POST', '/upload', files=files)
             result = response.json()
             
-            return result.get('cid')
+            if 'cid' not in result:
+                raise StorachaError("No CID in response")
+            
+            logger.info(f"File uploaded successfully. CID: {result['cid']}")
+            return result['cid']
             
         except Exception as e:
-            current_app.logger.error(f"Storacha upload failed: {str(e)}")
-            return None
-            
+            logger.error(f"File upload failed: {str(e)}")
+            raise
+    
     def upload_content(self, content: Union[str, bytes], filename: str) -> Optional[str]:
         """
         Upload content directly to Storacha
@@ -58,31 +123,29 @@ class StorachaClient:
             str: IPFS CID if successful, None otherwise
         """
         try:
+            logger.info(f"Uploading content as: {filename}")
+            
             if isinstance(content, str):
                 content = content.encode('utf-8')
-                
-            # Create file-like object
-            file_obj = io.BytesIO(content)
             
+            file_obj = io.BytesIO(content)
             files = {
                 'file': (filename, file_obj, 'application/octet-stream')
             }
             
-            response = requests.post(
-                'https://api.storacha.io/upload',
-                headers=self.headers,
-                files=files
-            )
-            
-            response.raise_for_status()
+            response = self._make_request('POST', '/upload', files=files)
             result = response.json()
             
-            return result.get('cid')
+            if 'cid' not in result:
+                raise StorachaError("No CID in response")
+            
+            logger.info(f"Content uploaded successfully. CID: {result['cid']}")
+            return result['cid']
             
         except Exception as e:
-            current_app.logger.error(f"Storacha content upload failed: {str(e)}")
-            return None
-            
+            logger.error(f"Content upload failed: {str(e)}")
+            raise
+    
     def get_content(self, cid: str) -> Optional[bytes]:
         """
         Retrieve content from Storacha by CID
@@ -94,18 +157,15 @@ class StorachaClient:
             bytes: File content if successful, None otherwise
         """
         try:
-            response = requests.get(
-                f'https://api.storacha.io/content/{cid}',
-                headers=self.headers
-            )
+            logger.info(f"Retrieving content for CID: {cid}")
             
-            response.raise_for_status()
+            response = self._make_request('GET', f'/content/{cid}')
             return response.content
             
         except Exception as e:
-            current_app.logger.error(f"Storacha content retrieval failed: {str(e)}")
-            return None
-            
+            logger.error(f"Content retrieval failed: {str(e)}")
+            raise
+    
     def check_cid_availability(self, cid: str) -> bool:
         """
         Check if a CID is available on IPFS
@@ -117,18 +177,18 @@ class StorachaClient:
             bool: True if available, False otherwise
         """
         try:
-            response = requests.head(
-                f'https://api.storacha.io/content/{cid}',
-                headers=self.headers
-            )
+            logger.info(f"Checking availability of CID: {cid}")
             
+            response = self._make_request('HEAD', f'/content/{cid}')
             return response.status_code == 200
             
-        except Exception as e:
-            current_app.logger.error(f"Storacha availability check failed: {str(e)}")
+        except StorachaError:
             return False
-            
-    def get_metadata(self, cid: str) -> Optional[dict]:
+        except Exception as e:
+            logger.error(f"CID availability check failed: {str(e)}")
+            return False
+    
+    def get_metadata(self, cid: str) -> Optional[Dict]:
         """
         Get metadata for a CID
         
@@ -139,18 +199,15 @@ class StorachaClient:
             dict: Metadata if successful, None otherwise
         """
         try:
-            response = requests.get(
-                f'https://api.storacha.io/metadata/{cid}',
-                headers=self.headers
-            )
+            logger.info(f"Retrieving metadata for CID: {cid}")
             
-            response.raise_for_status()
+            response = self._make_request('GET', f'/metadata/{cid}')
             return response.json()
             
         except Exception as e:
-            current_app.logger.error(f"Storacha metadata retrieval failed: {str(e)}")
-            return None
-            
+            logger.error(f"Metadata retrieval failed: {str(e)}")
+            raise
+    
     def pin_cid(self, cid: str) -> bool:
         """
         Pin a CID to ensure it remains available
@@ -162,14 +219,11 @@ class StorachaClient:
             bool: True if successful, False otherwise
         """
         try:
-            response = requests.post(
-                f'https://api.storacha.io/pin/{cid}',
-                headers=self.headers
-            )
+            logger.info(f"Pinning CID: {cid}")
             
-            response.raise_for_status()
-            return True
+            response = self._make_request('POST', f'/pin/{cid}')
+            return response.status_code == 200
             
         except Exception as e:
-            current_app.logger.error(f"Storacha pinning failed: {str(e)}")
+            logger.error(f"CID pinning failed: {str(e)}")
             return False
