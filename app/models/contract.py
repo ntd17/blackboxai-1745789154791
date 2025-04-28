@@ -34,6 +34,10 @@ class Contract(TimestampMixin, db.Model):
     # Signature Details
     signature_date = db.Column(db.DateTime)
     signature_metadata = db.Column(db.JSON)
+    signature_method = db.Column(db.String(50))
+    token_email = db.Column(db.String(255))
+    token_expiry = db.Column(db.DateTime)
+    certificate_info = db.Column(db.JSON)
     
     # Blockchain
     blockchain_tx = db.Column(db.String(255))  # Transaction hash for contract registration
@@ -61,11 +65,24 @@ class Contract(TimestampMixin, db.Model):
         self.amount = amount
         self.payment_method = payment_method
 
-    def update_signature(self, signed_cid, signature_metadata):
+    def update_signature(self, signed_cid, signature_metadata, signature_method=None):
         self.signed_cid = signed_cid
         self.status = 'signed'
         self.signature_date = datetime.utcnow()
         self.signature_metadata = signature_metadata
+        if signature_method:
+            self.signature_method = signature_method
+        self.updated_at = datetime.utcnow()
+
+    def set_token(self, token, expiry):
+        """Set email verification token"""
+        self.token_email = token
+        self.token_expiry = expiry
+        self.updated_at = datetime.utcnow()
+
+    def set_certificate_info(self, cert_info):
+        """Set ICP-Brasil certificate information"""
+        self.certificate_info = cert_info
         self.updated_at = datetime.utcnow()
 
     def adjust_duration(self, adjusted_days, reason):
