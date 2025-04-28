@@ -1,19 +1,21 @@
-import requests
 from flask import current_app
 from datetime import datetime, timedelta
 from typing import Dict, Optional, List
-import json
+import requests
+from app.utils.error_handlers import WeatherAPIError
+from app.utils.cache import cached, cache_weather, should_refresh_weather
 
 class WeatherService:
-    """Service for interacting with OpenWeatherMap API"""
+    """Service for interacting with OpenWeatherMap API with caching"""
     
     def __init__(self, api_key: str):
         self.api_key = api_key
         self.base_url = "https://api.openweathermap.org/data/2.5"
-        
-    def get_forecast(self, location: Dict, start_date: datetime.date, days: int) -> Optional[Dict]:
+    
+    @cached(expires_in=10800)  # Cache for 3 hours
+    def get_forecast(self, location: Dict, start_date: datetime.date, days: int) -> Dict:
         """
-        Get weather forecast for a location
+        Get weather forecast for a location with caching
         
         Args:
             location: Dictionary containing location details (coordinates or city name)
@@ -21,7 +23,10 @@ class WeatherService:
             days: Number of days to forecast
             
         Returns:
-            dict: Weather forecast data if successful, None otherwise
+            dict: Weather forecast data
+            
+        Raises:
+            WeatherAPIError: If weather data fetch fails
         """
         try:
             # Extract coordinates from location
@@ -32,7 +37,7 @@ class WeatherService:
                 # Get coordinates from city name
                 coords = self._get_coordinates(location.get('city'), location.get('country'))
                 if not coords:
-                    raise ValueError("Could not determine location coordinates")
+                    raise WeatherAPIError("Could not determine location coordinates")
                 lat, lon = coords
             
             # Get forecast data
@@ -46,28 +51,41 @@ class WeatherService:
             
             response = requests.get(
                 f"{self.base_url}/onecall",
-                params=params
+                params=params,
+                timeout=10  # Add timeout
             )
             
             response.raise_for_status()
             data = response.json()
             
-            # Filter and process forecast data
+            # Process and cache forecast data
             processed_data = self._process_forecast(
                 data,
                 start_date,
                 days
             )
             
+            # Add timestamp for cache freshness check
+            processed_data['timestamp'] = datetime.utcnow().isoformat()
+            
             return processed_data
+            
+        except requests.exceptions.Timeout:
+            current_app.logger.error("Weather API request timed out")
+            raise WeatherAPIError("Weather service timeout")
+            
+        except requests.exceptions.RequestException as e:
+            current_app.logger.error(f"Weather API request failed: {str(e)}")
+            raise WeatherAPIError(f"Weather service error: {str(e)}")
             
         except Exception as e:
             current_app.logger.error(f"Weather forecast fetch failed: {str(e)}")
-            return None
-            
+            raise WeatherAPIError(f"Weather service error: {str(e)}")
+    
+    @cached(expires_in=86400)  # Cache for 24 hours
     def _get_coordinates(self, city: str, country: str = None) -> Optional[tuple]:
         """
-        Get coordinates for a city
+        Get coordinates for a city with caching
         
         Args:
             city: City name
@@ -75,6 +93,9 @@ class WeatherService:
             
         Returns:
             tuple: (latitude, longitude) if found, None otherwise
+            
+        Raises:
+            WeatherAPIError: If geocoding fails
         """
         try:
             params = {
@@ -85,7 +106,8 @@ class WeatherService:
             
             response = requests.get(
                 "http://api.openweathermap.org/geo/1.0/direct",
-                params=params
+                params=params,
+                timeout=10
             )
             
             response.raise_for_status()
@@ -93,12 +115,21 @@ class WeatherService:
             
             if results:
                 return (results[0]['lat'], results[0]['lon'])
-            return None
+            
+            raise WeatherAPIError(f"Location not found: {city}")
+            
+        except requests.exceptions.Timeout:
+            current_app.logger.error("Geocoding API request timed out")
+            raise WeatherAPIError("Geocoding service timeout")
+            
+        except requests.exceptions.RequestException as e:
+            current_app.logger.error(f"Geocoding API request failed: {str(e)}")
+            raise WeatherAPIError(f"Geocoding service error: {str(e)}")
             
         except Exception as e:
             current_app.logger.error(f"Geocoding failed: {str(e)}")
-            return None
-            
+            raise WeatherAPIError(f"Geocoding service error: {str(e)}")
+    
     def _process_forecast(self, data: Dict, start_date: datetime.date, days: int) -> Dict:
         """
         Process and filter forecast data
@@ -111,64 +142,78 @@ class WeatherService:
         Returns:
             dict: Processed forecast data
         """
-        daily_data = data.get('daily', [])
-        
-        # Filter days and extract relevant information
-        processed_days = []
-        end_date = start_date + timedelta(days=days)
-        
-        for day_data in daily_data[:days]:
-            date = datetime.fromtimestamp(day_data['dt']).date()
-            if start_date <= date < end_date:
-                processed_days.append({
-                    'date': date.isoformat(),
-                    'temp': {
-                        'min': day_data['temp']['min'],
-                        'max': day_data['temp']['max'],
-                        'day': day_data['temp']['day']
-                    },
-                    'humidity': day_data['humidity'],
-                    'wind_speed': day_data['wind_speed'],
-                    'rain_prob': day_data.get('pop', 0),  # Probability of precipitation
-                    'rain_amount': day_data.get('rain', 0),  # Rain amount in mm
-                    'weather': {
-                        'main': day_data['weather'][0]['main'],
-                        'description': day_data['weather'][0]['description'],
-                        'icon': day_data['weather'][0]['icon']
-                    }
-                })
-        
-        # Calculate aggregate statistics
-        total_rain_prob = sum(day['rain_prob'] for day in processed_days)
-        total_rain_amount = sum(day['rain_amount'] for day in processed_days)
-        avg_temp = sum(day['temp']['day'] for day in processed_days) / len(processed_days)
-        
-        return {
-            'location': {
-                'lat': data['lat'],
-                'lon': data['lon']
-            },
-            'daily': processed_days,
-            'summary': {
-                'total_days': days,
-                'avg_rain_probability': total_rain_prob / days,
-                'total_rain_amount': total_rain_amount,
-                'avg_temperature': avg_temp,
-                'start_date': start_date.isoformat(),
-                'end_date': end_date.isoformat()
+        try:
+            daily_data = data.get('daily', [])
+            if not daily_data:
+                raise WeatherAPIError("No forecast data available")
+            
+            # Filter days and extract relevant information
+            processed_days = []
+            end_date = start_date + timedelta(days=days)
+            
+            for day_data in daily_data[:days]:
+                date = datetime.fromtimestamp(day_data['dt']).date()
+                if start_date <= date < end_date:
+                    processed_days.append({
+                        'date': date.isoformat(),
+                        'temp': {
+                            'min': day_data['temp']['min'],
+                            'max': day_data['temp']['max'],
+                            'day': day_data['temp']['day']
+                        },
+                        'humidity': day_data['humidity'],
+                        'wind_speed': day_data['wind_speed'],
+                        'rain_prob': day_data.get('pop', 0),  # Probability of precipitation
+                        'rain_amount': day_data.get('rain', 0),  # Rain amount in mm
+                        'weather': {
+                            'main': day_data['weather'][0]['main'],
+                            'description': day_data['weather'][0]['description'],
+                            'icon': day_data['weather'][0]['icon']
+                        }
+                    })
+            
+            if not processed_days:
+                raise WeatherAPIError("No forecast data available for specified dates")
+            
+            # Calculate aggregate statistics
+            total_rain_prob = sum(day['rain_prob'] for day in processed_days)
+            total_rain_amount = sum(day['rain_amount'] for day in processed_days)
+            avg_temp = sum(day['temp']['day'] for day in processed_days) / len(processed_days)
+            
+            return {
+                'location': {
+                    'lat': data['lat'],
+                    'lon': data['lon']
+                },
+                'daily': processed_days,
+                'summary': {
+                    'total_days': days,
+                    'avg_rain_probability': total_rain_prob / days,
+                    'total_rain_amount': total_rain_amount,
+                    'avg_temperature': avg_temp,
+                    'start_date': start_date.isoformat(),
+                    'end_date': end_date.isoformat()
+                }
             }
-        }
+            
+        except Exception as e:
+            current_app.logger.error(f"Error processing forecast data: {str(e)}")
+            raise WeatherAPIError(f"Error processing forecast data: {str(e)}")
     
-    def get_historical_data(self, location: Dict, date: datetime.date) -> Optional[Dict]:
+    @cached(expires_in=2592000)  # Cache for 30 days
+    def get_historical_data(self, location: Dict, date: datetime.date) -> Dict:
         """
-        Get historical weather data for a location
+        Get historical weather data for a location with caching
         
         Args:
             location: Dictionary containing location details
             date: Date to get historical data for
             
         Returns:
-            dict: Historical weather data if successful, None otherwise
+            dict: Historical weather data
+            
+        Raises:
+            WeatherAPIError: If historical data fetch fails
         """
         try:
             # Extract coordinates
@@ -178,7 +223,7 @@ class WeatherService:
             else:
                 coords = self._get_coordinates(location.get('city'), location.get('country'))
                 if not coords:
-                    raise ValueError("Could not determine location coordinates")
+                    raise WeatherAPIError("Could not determine location coordinates")
                 lat, lon = coords
             
             # Convert date to Unix timestamp
@@ -194,12 +239,26 @@ class WeatherService:
             
             response = requests.get(
                 f"{self.base_url}/onecall/timemachine",
-                params=params
+                params=params,
+                timeout=10
             )
             
             response.raise_for_status()
-            return response.json()
+            data = response.json()
+            
+            # Add timestamp for cache freshness check
+            data['timestamp'] = datetime.utcnow().isoformat()
+            
+            return data
+            
+        except requests.exceptions.Timeout:
+            current_app.logger.error("Historical weather API request timed out")
+            raise WeatherAPIError("Historical weather service timeout")
+            
+        except requests.exceptions.RequestException as e:
+            current_app.logger.error(f"Historical weather API request failed: {str(e)}")
+            raise WeatherAPIError(f"Historical weather service error: {str(e)}")
             
         except Exception as e:
             current_app.logger.error(f"Historical weather data fetch failed: {str(e)}")
-            return None
+            raise WeatherAPIError(f"Historical weather service error: {str(e)}")
