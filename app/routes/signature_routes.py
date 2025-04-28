@@ -9,6 +9,7 @@ from datetime import datetime
 import json
 
 @signature_bp.route('/contrato/assinar/<string:cid>', methods=['POST'])
+@signature_bp.route('/api/contrato/assinar/<string:cid>', methods=['POST'])
 def sign_contract(cid):
     """
     Sign a contract
