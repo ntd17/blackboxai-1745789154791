@@ -45,16 +45,30 @@ class ContractSchema(Schema):
 
 class SignatureSchema(Schema):
     """Schema for digital signatures"""
-    contract_id = fields.Int(required=True)
-    signer_id = fields.Int(required=True)
-    signature_data = fields.Str(required=True)
-    timestamp = fields.DateTime(required=True)
-    metadata = fields.Dict(required=False)
+    signer_email = fields.Email(required=True)
+    signature_data = fields.String(required=False)  # Not required for ICP-Brasil
+    signature_method = fields.String(required=False)
+    token = fields.String(required=False)  # Required for email token method
+    certificate_data = fields.String(required=False)  # Required for ICP-Brasil methods
+    certificate_password = fields.String(required=False)  # Required for ICP-Brasil direct
+    cpf = fields.String(required=False)  # Required for token method
+    
+    @validates('signature_method')
+    def validate_signature_method(self, value):
+        valid_methods = [
+            'signature_click_only',
+            'signature_token_email',
+            'signature_icp_upload',
+            'signature_icp_direct'
+        ]
+        if value and value not in valid_methods:
+            raise ValidationError(f"Invalid signature method. Must be one of: {', '.join(valid_methods)}")
 
-    @validates('signature_data')
-    def validate_signature(self, value):
-        if len(value) < 50:  # Minimum signature data length
-            raise ValidationError('Invalid signature data')
+class TokenRequestSchema(Schema):
+    """Schema for email token request validation"""
+    cid = fields.String(required=True)
+    email = fields.Email(required=True)
+    cpf = fields.String(required=True, validate=validate.Length(equal=11))
 
 class UserSchema(Schema):
     """Schema for user data"""
