@@ -2,6 +2,14 @@
 pragma solidity ^0.8.0;
 
 contract StorageContract {
+    // Enums for better gas optimization and type safety
+    enum ContractStatus {
+        Draft,
+        PendingSignature,
+        Signed,
+        Cancelled
+    }
+
     // Structs
     struct File {
         uint256 id;
@@ -14,8 +22,12 @@ contract StorageContract {
         uint256 id;
         string cid;
         uint256 timestamp;
-        string status;  // draft, pending_signature, signed, cancelled
+        ContractStatus status;
         address creator;
+        address partyA;
+        address partyB;
+        bool isPartyASigned;
+        bool isPartyBSigned;
     }
     
     struct Signature {
@@ -24,6 +36,7 @@ contract StorageContract {
         string signedCid;
         uint256 timestamp;
         string metadata;  // JSON string with signature details
+        address signer;
     }
     
     // State variables
@@ -36,8 +49,11 @@ contract StorageContract {
     
     // Events
     event FileStored(string cid, address owner, uint256 timestamp);
-    event ContractStored(uint256 indexed contractId, string cid, address creator);
-    event ContractSigned(uint256 indexed contractId, string originalCid, string signedCid);
+    event ContractStored(uint256 indexed contractId, string cid, address creator, address partyA, address partyB);
+    event ContractStatusChanged(uint256 indexed contractId, ContractStatus newStatus);
+    event SignatureRequested(uint256 indexed contractId, address requestedBy, address requestedFrom);
+    event ContractSigned(uint256 indexed contractId, string originalCid, string signedCid, address signer);
+    event ContractCancelled(uint256 indexed contractId, address cancelledBy, uint256 timestamp);
     
     // Modifiers
     modifier validCid(string memory cid) {
@@ -47,6 +63,23 @@ contract StorageContract {
     
     modifier contractExists(uint256 contractId) {
         require(contracts[contractId].id == contractId, "Contract not found");
+        _;
+    }
+
+    modifier onlyContractParty(uint256 contractId) {
+        require(
+            msg.sender == contracts[contractId].partyA ||
+            msg.sender == contracts[contractId].partyB,
+            "Only contract parties can perform this action"
+        );
+        _;
+    }
+
+    modifier notCancelled(uint256 contractId) {
+        require(
+            contracts[contractId].status != ContractStatus.Cancelled,
+            "Contract is cancelled"
+        );
         _;
     }
     
@@ -71,23 +104,52 @@ contract StorageContract {
     }
     
     // Contract management functions
-    function storeContract(uint256 contractId, string memory cid) 
+    function storeContract(
+        uint256 contractId, 
+        string memory cid,
+        address partyA,
+        address partyB
+    ) 
         public 
         validCid(cid) 
     {
         require(contracts[contractId].timestamp == 0, "Contract already registered");
+        require(partyA != address(0) && partyB != address(0), "Invalid party addresses");
         
         contracts[contractId] = Contract({
             id: contractId,
             cid: cid,
             timestamp: block.timestamp,
-            status: "draft",
-            creator: msg.sender
+            status: ContractStatus.Draft,
+            creator: msg.sender,
+            partyA: partyA,
+            partyB: partyB,
+            isPartyASigned: false,
+            isPartyBSigned: false
         });
         
         userContracts[msg.sender].push(contractId);
         
-        emit ContractStored(contractId, cid, msg.sender);
+        emit ContractStored(contractId, cid, msg.sender, partyA, partyB);
+    }
+
+    function requestSignature(uint256 contractId)
+        public
+        contractExists(contractId)
+        notCancelled(contractId)
+        onlyContractParty(contractId)
+    {
+        Contract storage c = contracts[contractId];
+        require(
+            c.status == ContractStatus.Draft,
+            "Contract must be in draft status"
+        );
+
+        c.status = ContractStatus.PendingSignature;
+        
+        address requestedFrom = (msg.sender == c.partyA) ? c.partyB : c.partyA;
+        emit SignatureRequested(contractId, msg.sender, requestedFrom);
+        emit ContractStatusChanged(contractId, ContractStatus.PendingSignature);
     }
     
     function signContract(
@@ -98,30 +160,64 @@ contract StorageContract {
     ) 
         public 
         contractExists(contractId)
+        notCancelled(contractId)
+        onlyContractParty(contractId)
         validCid(signedCid) 
     {
+        Contract storage c = contracts[contractId];
         require(
-            keccak256(bytes(contracts[contractId].cid)) == keccak256(bytes(originalCid)),
+            keccak256(bytes(c.cid)) == keccak256(bytes(originalCid)),
             "Original CID mismatch"
         );
         
         require(
-            keccak256(bytes(contracts[contractId].status)) == keccak256(bytes("draft")) ||
-            keccak256(bytes(contracts[contractId].status)) == keccak256(bytes("pending_signature")),
+            c.status == ContractStatus.Draft ||
+            c.status == ContractStatus.PendingSignature,
             "Contract not in signable state"
         );
+
+        // Update signature status
+        if (msg.sender == c.partyA) {
+            require(!c.isPartyASigned, "Party A already signed");
+            c.isPartyASigned = true;
+        } else {
+            require(!c.isPartyBSigned, "Party B already signed");
+            c.isPartyBSigned = true;
+        }
         
         signatures[contractId] = Signature({
             contractId: contractId,
             originalCid: originalCid,
             signedCid: signedCid,
             timestamp: block.timestamp,
-            metadata: signatureMetadata
+            metadata: signatureMetadata,
+            signer: msg.sender
         });
         
-        contracts[contractId].status = "signed";
+        // If both parties have signed, update status to Signed
+        if (c.isPartyASigned && c.isPartyBSigned) {
+            c.status = ContractStatus.Signed;
+            emit ContractStatusChanged(contractId, ContractStatus.Signed);
+        }
         
-        emit ContractSigned(contractId, originalCid, signedCid);
+        emit ContractSigned(contractId, originalCid, signedCid, msg.sender);
+    }
+
+    function cancelContract(uint256 contractId)
+        public
+        contractExists(contractId)
+        onlyContractParty(contractId)
+    {
+        Contract storage c = contracts[contractId];
+        require(
+            c.status != ContractStatus.Signed &&
+            c.status != ContractStatus.Cancelled,
+            "Cannot cancel signed or already cancelled contract"
+        );
+
+        c.status = ContractStatus.Cancelled;
+        emit ContractCancelled(contractId, msg.sender, block.timestamp);
+        emit ContractStatusChanged(contractId, ContractStatus.Cancelled);
     }
     
     function getContract(uint256 contractId) 
@@ -132,11 +228,26 @@ contract StorageContract {
             uint256 id,
             string memory cid,
             uint256 timestamp,
-            string memory status
+            ContractStatus status,
+            address creator,
+            address partyA,
+            address partyB,
+            bool isPartyASigned,
+            bool isPartyBSigned
         ) 
     {
         Contract memory c = contracts[contractId];
-        return (c.id, c.cid, c.timestamp, c.status);
+        return (
+            c.id,
+            c.cid,
+            c.timestamp,
+            c.status,
+            c.creator,
+            c.partyA,
+            c.partyB,
+            c.isPartyASigned,
+            c.isPartyBSigned
+        );
     }
     
     function getSignature(uint256 contractId)
@@ -148,11 +259,19 @@ contract StorageContract {
             string memory originalCid,
             string memory signedCid,
             uint256 timestamp,
-            string memory metadata
+            string memory metadata,
+            address signer
         )
     {
         Signature memory s = signatures[contractId];
-        return (s.contractId, s.originalCid, s.signedCid, s.timestamp, s.metadata);
+        return (
+            s.contractId,
+            s.originalCid,
+            s.signedCid,
+            s.timestamp,
+            s.metadata,
+            s.signer
+        );
     }
     
     function getUserContracts(address user) 
@@ -161,19 +280,6 @@ contract StorageContract {
         returns (uint256[] memory) 
     {
         return userContracts[user];
-    }
-    
-    // Contract status management
-    function updateContractStatus(uint256 contractId, string memory newStatus)
-        public
-        contractExists(contractId)
-    {
-        require(
-            msg.sender == contracts[contractId].creator,
-            "Only creator can update status"
-        );
-        
-        contracts[contractId].status = newStatus;
     }
     
     // Verification functions
@@ -190,12 +296,13 @@ contract StorageContract {
     function verifyContract(uint256 contractId, string memory cid)
         public
         view
-        returns (bool valid, uint256 timestamp)
+        returns (bool valid, uint256 timestamp, ContractStatus status)
     {
         Contract memory c = contracts[contractId];
         return (
             keccak256(bytes(c.cid)) == keccak256(bytes(cid)),
-            c.timestamp
+            c.timestamp,
+            c.status
         );
     }
     
@@ -206,13 +313,14 @@ contract StorageContract {
     )
         public
         view
-        returns (bool valid, uint256 timestamp)
+        returns (bool valid, uint256 timestamp, address signer)
     {
         Signature memory s = signatures[contractId];
         return (
             keccak256(bytes(s.originalCid)) == keccak256(bytes(originalCid)) &&
             keccak256(bytes(s.signedCid)) == keccak256(bytes(signedCid)),
-            s.timestamp
+            s.timestamp,
+            s.signer
         );
     }
 }
