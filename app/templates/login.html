@@ -1,0 +1,45 @@
+{% extends "base_public.html" %}
+
+{% block title %}
+<span class="lang" data-key="login_title"></span>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+  <h2 class="center-align">
+    <span class="lang" data-key="login_heading"></span>
+  </h2>
+  <div class="row">
+    <form class="col s12" method="post" action="{{ url_for('auth.login') }}">
+      <div class="row">
+        <div class="input-field col s12">
+          <input id="email" name="email" type="email" class="validate" required />
+          <label for="email"><span class="lang" data-key="login_email"></span></label>
+        </div>
+      </div>
+      <div class="row">
+        <div class="input-field col s12">
+          <input id="password" name="password" type="password" class="validate" required />
+          <label for="password"><span class="lang" data-key="login_password"></span></label>
+        </div>
+      </div>
+      <p>
+        <label>
+          <input type="checkbox" name="remember" />
+          <span><span class="lang" data-key="login_remember"></span></span>
+        </label>
+      </p>
+      <div class="row center">
+        <button class="btn blue" type="submit">
+          <span class="lang" data-key="login_button"></span>
+        </button>
+      </div>
+      <div class="row center">
+        <a href="{{ url_for('auth.forgot_password') }}">
+          <span class="lang" data-key="login_forgot_password"></span>
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
