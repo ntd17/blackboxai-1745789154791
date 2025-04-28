@@ -1,5 +1,13 @@
-from marshmallow import Schema, fields, validates, validates_schema, ValidationError
+from marshmallow import Schema, fields, validates, validates_schema, ValidationError, validate
 from datetime import datetime
+
+class UploadSchema(Schema):
+    """Schema for file upload validation"""
+    filename = fields.String(required=True)
+    file_size = fields.Integer(required=True)
+    mime_type = fields.String(required=True)
+    cid = fields.String(required=False)
+    user_id = fields.Integer(required=True)
 
 class LocationSchema(Schema):
     """Schema for location data"""
