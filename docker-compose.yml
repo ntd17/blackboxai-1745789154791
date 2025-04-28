@@ -1,31 +1,76 @@
 version: '3.8'
 
 services:
-  # Flask Application
-  app:
-    build: .
-    ports:
-      - "5000:5000"
+  # Flask Application Backend
+  flask-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: flask-app
+    restart: unless-stopped
+    expose:
+      - "5000"
+    environment:
+      - FLASK_APP=wsgi.py
+      - FLASK_ENV=${FLASK_ENV:-production}
+      - APP_NAME=${APP_NAME}
+      - HOSTNAME=${HOSTNAME}
+      - APP_LOGO_URL=${APP_LOGO_URL}
+      - DATABASE_URL=${DATABASE_URL}
+      - SMTP_SERVER=${SMTP_SERVER}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - STORACHA_API_KEY=${STORACHA_API_KEY}
+      - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY}
+      - CONTACT_EMAIL=${CONTACT_EMAIL}
+      - CONTACT_WHATSAPP=${CONTACT_WHATSAPP}
+      - LANGUAGES_ENABLED=${LANGUAGES_ENABLED}
+      - GANACHE_URL=http://ganache:8545
+      - CHAIN_ID=1337
     volumes:
       - ./app:/app/app
       - ./data/ml_models:/app/data/ml_models
       - ./data/sqlite:/app/data/sqlite
       - ./data/contracts:/app/data/contracts
-    environment:
-      - FLASK_ENV=development
-      - FLASK_DEBUG=1
-      - DATABASE_URL=sqlite:///data/sqlite/app.db
-      - GANACHE_URL=http://ganache:8545
-      - CHAIN_ID=1337
-      - ML_MODEL_PATH=/app/data/ml_models/duration_predictor.h5
+      - ./logs:/app/logs
+    networks:
+      - backend
     depends_on:
       - ganache
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # Ganache Blockchain (Using official Docker image)
+  # Apache Reverse Proxy
+  apache:
+    image: httpd:latest
+    container_name: apache-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./apache/painting-contract.conf:/usr/local/apache2/conf/extra/painting-contract.conf
+      - ./apache/certs:/etc/letsencrypt
+      - ./apache/httpd.conf:/usr/local/apache2/conf/httpd.conf
+      - ./logs/apache:/usr/local/apache2/logs
+    networks:
+      - backend
+    depends_on:
+      - flask-app
+    environment:
+      - APP_NAME=${APP_NAME}
+      - HOSTNAME=${HOSTNAME}
+    restart: unless-stopped
+
+  # Ganache Blockchain
   ganache:
     image: trufflesuite/ganache:latest
-    ports:
-      - "8545:8545"
+    container_name: ganache
+    expose:
+      - "8545"
     volumes:
       - ./data/ganache:/ganache_data
     command:
@@ -38,11 +83,18 @@ services:
       - --wallet.defaultBalance=1000
       - --miner.blockTime=0
       - --chain.hardfork=london
+    networks:
+      - backend
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8545"]
       interval: 30s
       timeout: 10s
-      retries: 5
+      retries: 3
+    restart: unless-stopped
+
+networks:
+  backend:
+    driver: bridge
 
 volumes:
   ml_models:
@@ -53,7 +105,3 @@ volumes:
     driver: local
   contract_data:
     driver: local
-
-networks:
-  default:
-    driver: bridge
