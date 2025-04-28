@@ -28,6 +28,7 @@ services:
       - LANGUAGES_ENABLED=${LANGUAGES_ENABLED}
       - GANACHE_URL=http://ganache:8545
       - CHAIN_ID=1337
+      - REDIS_URL=redis://redis:6379/0
     volumes:
       - ./app:/app/app
       - ./data/ml_models:/app/data/ml_models
@@ -38,8 +39,25 @@ services:
       - backend
     depends_on:
       - ganache
+      - redis
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis Cache
+  redis:
+    image: redis:alpine
+    container_name: redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -104,4 +122,6 @@ volumes:
   ganache_data:
     driver: local
   contract_data:
+    driver: local
+  redis_data:
     driver: local
