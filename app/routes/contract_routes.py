@@ -1,14 +1,16 @@
-from flask import jsonify, request, current_app
+from flask import jsonify, request, current_app, send_file
+from pathlib import Path
 from app import db
 from app.models.contract import Contract, ContractAdjustment
 from app.models.weather_prediction import WeatherPrediction
 from app.routes import contract_bp
 from app.services.weather_service import WeatherService
 from app.services.ml_service import MLPredictor
-from app.services.pdf_generator import generate_contract_pdf
+from app.services.pdf_generator import generate_contract_pdf, generate_pdf_from_html
 from app.services.email_service import send_contract_email
 from app.services.storacha import StorachaClient
 from app.blockchain.web3_client import Web3Client
+from app.services.contract_generator import ContractGenerator
 from datetime import datetime, timedelta
 from app.utils.validators.marshmallow_schemas import ContractSchema
 from app.utils.error_handlers import ValidationError, BlockchainError
@@ -26,9 +28,11 @@ limiter = Limiter(
 @contract_bp.route('/contrato/gerar', methods=['POST'])
 @contract_bp.route('/api/contrato/gerar', methods=['POST'])
 @limiter.limit("20/hour")  # Stricter limit for contract generation
+@contract_bp.route('/generate', methods=['POST'])
+@limiter.limit("20/hour")
 def generate_contract():
     """
-    Generate a new painting contract with weather-based duration prediction
+    Generate a new painting contract with weather-based duration prediction (legacy)
     ---
     tags:
       - Contracts
@@ -132,11 +136,24 @@ def generate_contract():
                 f"Weather-based adjustment: {prediction['delay_days']} additional days recommended"
             )
         
-        # Generate PDF
+        # Generate PDF using legacy generator
         pdf_content = generate_contract_pdf(
             contract=contract,
             weather_prediction=weather_prediction
         )
+
+        # Generate new HTML-based contract
+        generator = ContractGenerator()
+        contract_data = {
+            'contractor_name': contract.contractor_name,
+            'client_name': contract.provider_name,
+            'total_price': contract.amount,
+            'start_date': contract.planned_start_date.strftime('%B %d, %Y'),
+            'completion_date': (contract.planned_start_date + 
+                               timedelta(days=contract.planned_duration_days)).strftime('%B %d, %Y'),
+            'location': contract.location
+        }
+        html_pdf_path = generator.generate_painting_contract(contract_data)
         
         # Upload to Storacha
         storacha = StorachaClient(
@@ -206,10 +223,24 @@ def generate_contract():
             'details': str(e)
         }), 500
 
+@contract_bp.route('/template', methods=['GET'])
+@limiter.limit("100/hour")
+@cached(timeout=300)
+def get_contract_template():
+    """Get contract template structure endpoint"""
+    try:
+        template_path = Path(__file__).parent.parent / 'templates/contracts/painting_contract.html'
+        with open(template_path) as f:
+            template = f.read()
+        return jsonify({'template': template})
+    except Exception as e:
+        current_app.logger.error(f"Template retrieval failed: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @contract_bp.route('/contrato/status/<string:cid>', methods=['GET'])
 @contract_bp.route('/api/status/<string:cid>', methods=['GET'])
 @limiter.limit("100/hour")
-@cached(timeout=300)  # Cache for 5 minutes
+@cached(timeout=300)
 def get_contract_status(cid):
     """
     Get contract status by CID
