@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Contrato de Serviços de Pintura</title>
+    <style>
+        /* Existing styles plus legal formatting */
+        .clausula-llm { border-left: 3px solid #007bff; padding-left: 1rem; margin: 1.5rem 0; }
+        .assinatura-digital { border: 1px dashed #28a745; padding: 1rem; margin-top: 2rem; }
+    </style>
+</head>
+<body>
+    <div class="contract-header">
+        <h1>CONTRATO DE SERVIÇOS DE PINTURA</h1>
+        <p>Celebrado em {{ contract_date }} entre:</p>
+    </div>
+
+    <!-- Existing sections with Portuguese labels -->
+    <div class="section">
+        <h2>1. PARTES CONTRATANTES</h2>
+        <p><strong>Contratado:</strong> {{ contractor_name }}</p>
+        <p><strong>Contratante:</strong> {{ client_name }}</p>
+    </div>
+
+    <!-- LLM Generated Clauses Section -->
+    <div class="clausula-llm">
+        {% if llm_clauses %}
+            <h3>Cláusulas Específicas</h3>
+            {{ llm_clauses|safe }}
+        {% else %}
+            <h3>Cláusulas Padrão</h3>
+            {{ default_clauses|safe }}
+        {% endif %}
+    </div>
+
+    <!-- Updated Signature Block with Digital Integration -->
+    <div class="assinatura-digital">
+        <h4>Área de Assinatura Digital</h4>
+        <div id="signature-pad">
+            <p>Assinatura do Contratado: {% if signed_contractor %}✅ Assinado digitalmente{% else %}⏱ Pendente{% endif %}</p>
+            <p>Assinatura do Contratante: {% if signed_client %}✅ Assinado digitalmente{% else %}⏱ Pendente{% endif %}</p>
+        </div>
+    </div>
+</body>
+</html>
