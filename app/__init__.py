@@ -62,6 +62,10 @@ def create_app(config_class=Config):
     # Initialize Swagger
     Swagger(app)
     
+    # Initialize extensions that need app context
+    from app.routes.storage_routes import init_limiter
+    init_limiter(app)
+    
     # Register error handlers
     register_error_handlers(app)
     
