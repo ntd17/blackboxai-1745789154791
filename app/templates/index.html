@@ -1,0 +1,21 @@
+{% extends "base_public.html" %}
+
+{% block title %}
+<span class="lang" data-key="home_title"></span>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+  <h1 class="center-align">
+    <span class="lang" data-key="home_heading"></span>
+  </h1>
+  <p class="flow-text center-align">
+    <span class="lang" data-key="home_subheading"></span>
+  </p>
+  <div class="row center">
+    <a href="{{ url_for('auth.register') }}" class="btn-large blue">
+      <span class="lang" data-key="get_started"></span>
+    </a>
+  </div>
+</div>
+{% endblock %}
