@@ -22,6 +22,14 @@ model.fit(train_data, epochs=10)
 model.save('path/to/model')
 ```
 
+Alternatively, you can use the provided training script `train_model.py` in the project root to automate data collection and model training:
+
+```bash
+python train_model.py
+```
+
+This script downloads historical weather data from Open-Meteo, preprocesses it, trains a binary classifier to predict rain, and saves the model as `ml_rain_predictor.h5` in the project root.
+
 ## Exporting the Model
 
 Export the trained model in a format compatible with the Flask API:
